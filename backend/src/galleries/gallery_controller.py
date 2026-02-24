@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from src.auth.auth_guard import RoleChecker, get_current_user
 from src.common.dto.pagination_response_dto import PaginationResponseDto
 from src.galleries.dto.gallery_response_dto import MediaItemResponse
+from src.galleries.dto.unified_gallery_response import UnifiedGalleryItemResponse
 from src.galleries.dto.gallery_search_dto import GallerySearchDto
 from src.galleries.gallery_service import GalleryService
 from src.users.user_model import UserModel, UserRoleEnum
@@ -42,7 +43,7 @@ router = APIRouter(
 
 @router.post(
     "/search",
-    response_model=PaginationResponseDto[MediaItemResponse],
+    response_model=PaginationResponseDto[UnifiedGalleryItemResponse],
 )
 async def search_gallery_items(
     search_dto: GallerySearchDto,

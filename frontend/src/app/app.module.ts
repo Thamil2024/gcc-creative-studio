@@ -85,6 +85,7 @@ import { AddVoiceDialogComponent } from './components/add-voice-dialog/add-voice
 import { FooterComponent } from './footer/footer.component';
 import { FunTemplatesComponent } from './fun-templates/fun-templates.component';
 import { MediaDetailComponent } from './gallery/media-detail/media-detail.component';
+import { AssetDetailComponent } from './gallery/asset-detail/asset-detail.component';
 import { MediaGalleryComponent } from './gallery/media-gallery/media-gallery.component';
 import { HeaderComponent } from './header/header.component';
 import { HomeComponent } from './home/home.component';
@@ -119,6 +120,7 @@ import { UpscaleComponent } from './upscale/upscale.component';
     ArenaComponent,
     MediaGalleryComponent,
     MediaDetailComponent,
+    AssetDetailComponent,
     MediaLightboxComponent,
     VtoComponent,
     ImageSelectorComponent,

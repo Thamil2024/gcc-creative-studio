@@ -45,6 +45,9 @@ from src.source_assets.repository.source_asset_repository import (
     SourceAssetRepository,
 )
 from src.users.user_model import UserModel, UserRoleEnum
+from src.users.repository.user_repository import UserRepository
+from src.galleries.dto.unified_gallery_response import UnifiedGalleryItemResponse
+from src.galleries.repository.unified_gallery_repository import UnifiedGalleryRepository
 from src.workspaces.repository.workspace_repository import WorkspaceRepository
 from src.workspaces.schema.workspace_model import WorkspaceScopeEnum
 from src.workspaces.workspace_auth_guard import WorkspaceAuth
@@ -61,6 +64,8 @@ class GalleryService:
         self,
         media_repo: MediaRepository = Depends(),
         source_asset_repo: SourceAssetRepository = Depends(),
+        unified_gallery_repo: UnifiedGalleryRepository = Depends(),
+        user_repo: UserRepository = Depends(),
         workspace_repo: WorkspaceRepository = Depends(),
         iam_signer_credentials: IamSignerCredentials = Depends(),
         workspace_auth: WorkspaceAuth = Depends(),
@@ -69,6 +74,8 @@ class GalleryService:
         """Initializes the service with its dependencies."""
         self.media_repo = media_repo
         self.source_asset_repo = source_asset_repo
+        self.unified_gallery_repo = unified_gallery_repo
+        self.user_repo = user_repo
         self.workspace_repo = workspace_repo
         self.iam_signer_credentials = iam_signer_credentials
         self.workspace_auth = workspace_auth
@@ -245,13 +252,55 @@ class GalleryService:
             presigned_urls=presigned_urls,
             original_presigned_urls=original_presigned_urls,
             presigned_thumbnail_urls=presigned_thumbnail_urls,
-            enriched_source_assets=enriched_source_assets or None,
             enriched_source_media_items=enriched_source_media_items or None,
         )
 
+    async def _enrich_unified_item(
+        self, item: UnifiedGalleryItemResponse
+    ) -> UnifiedGalleryItemResponse:
+        """
+        Enriches a UnifiedGalleryItemResponse with presigned URLs.
+        """
+        
+        # Helper to safely get list or string as list
+        def as_list(val):
+            if isinstance(val, list):
+                return val
+            return [val] if val else []
+
+        uris_to_sign = []
+        thumbnail_uris_to_sign = []
+        
+        uris_to_sign = item.gcs_uris or []
+        thumbnail_uris_to_sign = item.thumbnail_uris or []
+
+        # Create tasks
+        url_tasks = [
+             asyncio.to_thread(
+                self.iam_signer_credentials.generate_presigned_url, uri
+            )
+            for uri in uris_to_sign if uri
+        ]
+        
+        thumbnail_tasks = [
+             asyncio.to_thread(
+                self.iam_signer_credentials.generate_presigned_url, uri
+            )
+            for uri in thumbnail_uris_to_sign if uri
+        ]
+        
+        (presigned_urls, presigned_thumbnail_urls) = await asyncio.gather(
+            asyncio.gather(*url_tasks),
+            asyncio.gather(*thumbnail_tasks)
+        )
+        
+        item.presigned_urls = presigned_urls
+        item.presigned_thumbnail_urls = presigned_thumbnail_urls
+        return item
+
     async def get_paginated_gallery(
         self, search_dto: GallerySearchDto, current_user: UserModel
-    ) -> PaginationResponseDto[MediaItemResponse]:
+    ) -> PaginationResponseDto[UnifiedGalleryItemResponse]:
         """
         Performs a paginated and filtered search for media items.
         Authorization is handled by a dependency in the controller.
@@ -260,25 +309,32 @@ class GalleryService:
         # If the user is not an admin, force the search to only show completed items
         if not is_admin:
             search_dto.status = JobStatusEnum.COMPLETED
+        
+        user_id = None
+        if search_dto.user_email:
+            user = await self.user_repo.get_by_email(search_dto.user_email)
+            if user:
+                user_id = user.id
 
         # Run the database query directly (it is async)
-        media_items_query = await self.media_repo.query(
+        # We assume UnifiedGalleryRepository.query handles user_id filtering
+        unified_items_query = await self.unified_gallery_repo.query(
             search_dto,
-            workspace_id=search_dto.workspace_id,
+            user_id=user_id,
         )
-        media_items = media_items_query.data or []
+        unified_items = unified_items_query.data or []
 
         # Convert each MediaItem to a GalleryItemResponse in parallel
         response_tasks = [
-            self._create_gallery_response(item) for item in media_items
+            self._enrich_unified_item(item) for item in unified_items
         ]
         enriched_items = await asyncio.gather(*response_tasks)
 
-        return PaginationResponseDto[MediaItemResponse](
-            count=media_items_query.count,
-            page=media_items_query.page,
-            page_size=media_items_query.page_size,
-            total_pages=media_items_query.total_pages,
+        return PaginationResponseDto[UnifiedGalleryItemResponse](
+            count=unified_items_query.count,
+            page=unified_items_query.page,
+            page_size=unified_items_query.page_size,
+            total_pages=unified_items_query.total_pages,
             data=enriched_items,
         )
 

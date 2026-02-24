@@ -28,7 +28,7 @@
     <ng-container *ngIf="!isVideo && !isAudio && selectedUrl">
       <img
         [ngSrc]="selectedUrl"
-        [alt]="mediaItem.originalPrompt"
+        [alt]="mediaItem.prompt || $any(mediaItem).originalPrompt"
         [width]="imageWidth"
         [height]="imageHeight"
         priority

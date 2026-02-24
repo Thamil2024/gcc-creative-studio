@@ -23,6 +23,7 @@ import {
   EnrichedSourceAsset,
   MediaItem,
 } from '../../common/models/media-item.model';
+import { GalleryItem } from '../../common/models/gallery-item.model';
 import { CreatePromptMediaDto } from '../../common/models/prompt.model';
 import { SourceMediaItemLink } from '../../common/models/search.model';
 import { AuthService } from '../../common/services/auth.service';
@@ -41,12 +42,12 @@ export class MediaDetailComponent implements OnDestroy {
   private mediaSub?: Subscription;
 
   public isLoading = true;
-  public mediaItem: MediaItem | undefined;
+  public mediaItem: GalleryItem | undefined;
   public isAdmin = false;
   public initialSlideIndex = 0;
   promptJson: CreatePromptMediaDto | undefined;
   isPromptExpanded = false;
-  public selectedAssetForLightbox: MediaItem | null = null;
+  public selectedAssetForLightbox: GalleryItem | null = null;
   public lightboxInitialIndex = 0;
 
   constructor(
@@ -93,7 +94,7 @@ export class MediaDetailComponent implements OnDestroy {
 
   fetchMediaDetails(id: number): void {
     this.mediaSub = this.galleryService.getMedia(id).subscribe({
-      next: data => {
+      next: (data: GalleryItem) => {
         this.mediaItem = data;
         this.isLoading = false;
         this.loadingService.hide();
@@ -222,7 +223,7 @@ export class MediaDetailComponent implements OnDestroy {
       state: {
         remixState: {
           sourceMediaItems: [sourceMediaItem],
-          prompt: this.mediaItem.originalPrompt,
+          prompt: this.mediaItem.prompt,
           previewUrl: this.mediaItem.presignedUrls?.[index],
         },
       },
@@ -242,7 +243,7 @@ export class MediaDetailComponent implements OnDestroy {
     };
 
     const remixState = {
-      prompt: this.mediaItem.originalPrompt,
+      prompt: this.mediaItem.prompt,
       sourceMediaItems: [sourceMediaItem],
       startImagePreviewUrl:
         event.role === 'start'
@@ -293,7 +294,7 @@ export class MediaDetailComponent implements OnDestroy {
     };
 
     const remixState = {
-      prompt: this.mediaItem.originalPrompt,
+      prompt: this.mediaItem.prompt,
       sourceMediaItems: [sourceMediaItem],
       // Since it's a video, we can use the thumbnail as a preview.
       startImagePreviewUrl:
@@ -350,13 +351,20 @@ export class MediaDetailComponent implements OnDestroy {
 
     // Existing logic for images
     // Construct a MediaItem-like object for the lightbox
-    const mediaItem: MediaItem = {
+    // Construct a GalleryItem-like object for the lightbox
+    const mediaItem: GalleryItem = {
       id: Number(sourceAsset.sourceAssetId),
+      workspaceId: 0,
+      createdAt: new Date().toISOString(),
+      itemType: 'media_item',
+      status: 'COMPLETED',
       mimeType: MimeTypeEnum.IMAGE,
+      prompt: `Input: ${sourceAsset.role}`,
+      gcsUris: [sourceAsset.gcsUri],
+      thumbnailUris: [sourceAsset.presignedThumbnailUrl],
       presignedUrls: [sourceAsset.presignedUrl],
       presignedThumbnailUrls: [sourceAsset.presignedThumbnailUrl],
-      originalPrompt: `Input: ${sourceAsset.role}`,
-      gcsUris: [sourceAsset.gcsUri],
+      metadata: {},
     };
     this.selectedAssetForLightbox = mediaItem;
     this.lightboxInitialIndex = 0;

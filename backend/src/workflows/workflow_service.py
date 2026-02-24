@@ -433,11 +433,12 @@ class WorkflowService:
                                      await ingest_gcs_uri(uri, w_id) for uri in value
                                  ]
                          except Exception as e:
-                             return BatchItemResultDto(
-                                 row_index=item.row_index,
-                                 status="FAILED",
-                                 error=f"Invalid GCS URI in '{key}': {str(e)}"
-                             )
+                            logger.exception(f"Failed to ingest GCS URI in '{key}': {str(e)} from row {item.row_index}")
+                            return BatchItemResultDto(
+                                row_index=item.row_index,
+                                status="FAILED",
+                                error=f"Invalid GCS URI in '{key}': {str(e)}"
+                            )
                     else:
                         processed_args[key] = value
 

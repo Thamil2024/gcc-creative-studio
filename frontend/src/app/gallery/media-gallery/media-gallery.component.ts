@@ -37,6 +37,7 @@ import { debounceTime } from 'rxjs/operators';
 import { MediaItemSelection } from '../../common/components/image-selector/image-selector.component';
 import { MODEL_CONFIGS } from '../../common/config/model-config';
 import { JobStatus, MediaItem } from '../../common/models/media-item.model';
+import { GalleryItem } from '../../common/models/gallery-item.model';
 import { GallerySearchDto } from '../../common/models/search.model';
 import { UserService } from '../../common/services/user.service';
 import { GalleryService } from '../gallery.service';
@@ -57,11 +58,18 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     | 'video/*'
     | 'audio/*'
     | null = null;
-  @Input() statusFilter: JobStatus | null = JobStatus.COMPLETED;
+  @Input() statusFilter: string | null = JobStatus.COMPLETED;
 
-  public images: MediaItem[] = [];
-  public columns: MediaItem[][] = [];
-  allImagesLoaded = false;
+  @Input() showOnlyMyMedia = false;
+  @Input() isSelectionMode = false;
+  @Output() mediaSelected = new EventEmitter<GalleryItem>();
+
+  images: GalleryItem[] = [];
+  filteredImages: GalleryItem[] = [];
+  groups: { title: string; columns: GalleryItem[][] }[] = [];
+
+  public allImagesLoaded = false;
+
   public isLoading = true;
   private imagesSubscription: Subscription | undefined;
   private allImagesLoadedSubscription: Subscription | undefined;
@@ -73,15 +81,11 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
   public userEmailFilter = '';
   public mediaTypeFilter = '';
   public generationModelFilter = '';
-  public showOnlyMyMedia = false;
   public generationModels = MODEL_CONFIGS.map(config => ({
     value: config.value,
     viewValue: config.viewValue.replace('\n', ''), // Remove newlines for dropdown
   }));
   private autoSlideIntervals: { [id: string]: any } = {};
-  public currentImageIndices: { [id: string]: number } = {};
-  public hoveredVideoId: number | null = null;
-  public hoveredAudioId: number | null = null;
 
   isBrowser: boolean;
 
@@ -106,8 +110,6 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
       );
   }
 
-  @ViewChild('sentinel') private _sentinel!: ElementRef<HTMLElement>;
-
   private path = '../../assets/images';
 
   private setPath(url: string): SafeResourceUrl {
@@ -120,6 +122,12 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     this.loadingSubscription = this.galleryService.isLoading$.subscribe(
       loading => {
         this.isLoading = loading;
+        if (!loading && this.isBrowser) {
+          // Re-check loading finishes
+          setTimeout(() => {
+            // Logic to handle post-loading if needed
+          }, 100);
+        }
       },
     );
 
@@ -128,15 +136,10 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
         // Find only the new images that have been added
         const newImages = images.slice(this.images.length);
         newImages.forEach(image => {
-          if (this.currentImageIndices[image.id] === undefined) {
-            this.currentImageIndices[image.id] = 0;
-          }
-          if (!this.autoSlideIntervals[image.id]) {
-            this.startAutoSlide(image);
-          }
+          // Intervals now handled by child component
         });
-        this.images = images;
-        this.updateColumns();
+        this.images = images as GalleryItem[]; // Cast to GalleryItem[]
+        this.filterImages();
       }
     });
 
@@ -155,24 +158,10 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit(): void {
     if (!this.isBrowser) return;
-
-    // This observer's job is to wait until the component's host element is actually
-    // visible in the DOM. This is important for components inside lazy-loaded tabs.
-    this._hostVisibilityObserver = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        // Now that the component is visible, we can safely find its scrollable parent
-        // and set up the observer for infinite scrolling.
-        this.setupInfiniteScrollObserver();
-        // We only need to do this once.
-        this._hostVisibilityObserver.disconnect();
-      }
-    });
-    this._hostVisibilityObserver.observe(this.elementRef.nativeElement);
   }
 
 
   ngOnDestroy(): void {
-    this.stopAudio();
     if (this.isBrowser) {
         // Force pause any lingering audio elements to prevent them from playing after component destruction
         const audios = this.elementRef.nativeElement.querySelectorAll('audio');
@@ -182,159 +171,27 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
         });
     }
 
-    this.imagesSubscription?.unsubscribe();
-    this.loadingSubscription?.unsubscribe();
-    this.allImagesLoadedSubscription?.unsubscribe();
     this.resizeSubscription?.unsubscribe();
     this._hostVisibilityObserver?.disconnect();
     this._scrollObserver?.disconnect();
-    Object.values(this.autoSlideIntervals).forEach(clearInterval);
   }
 
-  private getScrollableContainer(): HTMLElement | null {
-    const element = this.elementRef.nativeElement as HTMLElement;
-    // When inside a dialog, `elementRef.nativeElement` might not have a `parentElement`
-    // immediately available, especially when inside other components like MatTabs.
-    // A more robust way is to find the dialog's overlay pane and query within it.
-    const overlayPane = element.closest('.cdk-overlay-pane');
-    return (
-      overlayPane?.querySelector<HTMLElement>('.mat-mdc-dialog-content') || null
-    );
+  public trackByImage(index: number, image: GalleryItem): number | string {
+    return `${image.itemType}_${image.id}`;
   }
 
-  private setupInfiniteScrollObserver(): void {
-    if (!this._sentinel) {
-      return;
-    }
-
-    const scrollRoot = this.getScrollableContainer();
-
-    this._scrollObserver = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !this.isLoading && !this.allImagesLoaded) {
-          this.ngZone.run(() => {
-            this.galleryService.loadGallery();
-          });
-        }
-      },
-      {
-        root: scrollRoot,
-      },
-    );
-
-    this._scrollObserver.observe(this._sentinel.nativeElement);
+  public trackByGroup(index: number, group: { title: string }): string {
+    return group.title;
   }
 
-  public trackByImage(index: number, image: MediaItem): number {
-    return image.id;
-  }
-
-  public getCurrentImageUrl(image: MediaItem): string {
-    const index = this.currentImageIndices[image.id] || 0;
-    return image.presignedUrls?.[index] || '';
-  }
-
-  public nextImage(
-    imageId: number,
-    urlsLength: number,
-    event?: MouseEvent,
-  ): void {
-    if (event) {
-      event.stopPropagation();
-      event.preventDefault();
-      this.stopAutoSlide(imageId);
-    }
-    const currentIndex = this.currentImageIndices[imageId] || 0;
-    this.currentImageIndices[imageId] = (currentIndex + 1) % urlsLength;
-  }
-
-  public prevImage(
-    imageId: number,
-    urlsLength: number,
-    event?: MouseEvent,
-  ): void {
-    if (event) {
-      event.stopPropagation();
-      event.preventDefault();
-      this.stopAutoSlide(imageId);
-    }
-    const currentIndex = this.currentImageIndices[imageId] || 0;
-    this.currentImageIndices[imageId] =
-      (currentIndex - 1 + urlsLength) % urlsLength;
-  }
-
-  get isSelectionMode(): boolean {
-    return this.mediaItemSelected.observed;
-  }
-
-  selectMedia(mediaItem: MediaItem, event: MouseEvent) {
-    if (this.isSelectionMode) {
-      const selectedIndex = this.currentImageIndices[mediaItem.id] || 0;
-      // Emit the full media item and the selected index
-      this.mediaItemSelected.emit({ mediaItem, selectedIndex });
+  public loadMore(): void {
+    if (!this.isLoading && !this.allImagesLoaded) {
+      this.galleryService.loadGallery();
     }
   }
 
-  public onMouseEnter(media: MediaItem): void {
-    if (media.mimeType?.startsWith('video/')) this.playVideo(media.id);
-
-    // 2. ADD THIS CHECK
-    if (media.mimeType?.startsWith('audio/')) this.playAudio(media.id);
-
-    this.stopAutoSlide(media.id);
-  }
-
-  public onMouseLeave(media: MediaItem): void {
-    if (media.mimeType?.startsWith('video/')) this.stopVideo();
-
-    // 3. ADD THIS CHECK
-    if (media.mimeType?.startsWith('audio/')) this.stopAudio();
-
-    this.startAutoSlide(media);
-  }
-
-  public playAudio(mediaId: number): void {
-    this.hoveredAudioId = mediaId;
-  }
-
-  public stopAudio(): void {
-    this.hoveredAudioId = null;
-  }
-
-  public getShortPrompt(
-    prompt: string | undefined | null,
-    wordLimit = 20,
-  ): string {
-    if (!prompt) return 'Generated media';
-
-    let textToTruncate = prompt;
-
-    // Prompts can sometimes be stringified JSON.
-    try {
-      const parsedPrompt = JSON.parse(prompt);
-      if (
-        parsedPrompt &&
-        typeof parsedPrompt === 'object' &&
-        parsedPrompt.prompt_name
-      ) {
-        textToTruncate = parsedPrompt.prompt_name;
-      }
-    } catch (e) {
-      // It's not JSON, so we use the prompt as is.
-    }
-
-    const words = textToTruncate.split(/\s+/);
-    if (words.length > wordLimit)
-      return words.slice(0, wordLimit).join(' ') + '...';
-    return textToTruncate;
-  }
-
-  public playVideo(mediaId: number): void {
-    this.hoveredVideoId = mediaId;
-  }
-
-  public stopVideo(): void {
-    this.hoveredVideoId = null;
+  selectMedia(media: GalleryItem, event: Event): void {
+    // Deprecated: Handled by GalleryCardComponent
   }
 
   public onShowOnlyMyMediaChange(event: MatCheckboxChange): void {
@@ -342,24 +199,6 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
       const userDetails = this.userService.getUserDetails();
       if (userDetails?.email) this.userEmailFilter = userDetails.email;
     } else this.userEmailFilter = '';
-  }
-
-  public startAutoSlide(image: MediaItem): void {
-    if (image.presignedUrls && image.presignedUrls.length > 1) {
-      if (this.autoSlideIntervals[image.id]) {
-        return;
-      }
-      this.autoSlideIntervals[image.id] = setInterval(() => {
-        this.nextImage(image.id, image.presignedUrls!.length);
-      }, 3000);
-    }
-  }
-
-  public stopAutoSlide(imageId: number): void {
-    if (this.autoSlideIntervals[imageId]) {
-      clearInterval(this.autoSlideIntervals[imageId]);
-      delete this.autoSlideIntervals[imageId];
-    }
   }
 
   private handleResize(): void {
@@ -377,22 +216,98 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (newNumColumns !== this.numColumns) {
       this.numColumns = newNumColumns;
-      this.updateColumns();
+      this.updateGroups();
     }
   }
 
-  private updateColumns(): void {
-    this.columns = Array.from({ length: this.numColumns }, () => []);
-    this.images.forEach((image, index) => {
-      this.columns[index % this.numColumns].push(image);
+  private updateGroups(): void {
+    // 1. Group images
+    const groupsMap = new Map<string, GalleryItem[]>();
+    // We want to preserve order of groups based on time
+    const groupOrder: string[] = [];
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Helper to get start of week (Sunday)
+    const getStartOfWeek = (d: Date) => {
+      const date = new Date(d);
+      const day = date.getDay();
+      const diff = date.getDate() - day;
+      return new Date(date.setDate(diff));
+    };
+
+    this.images.forEach(image => {
+      if (!image.createdAt) return;
+      const date = new Date(image.createdAt);
+      // Reset time for comparison
+      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+      let groupName = '';
+
+      const diffTime = today.getTime() - dateOnly.getTime();
+      const diffDays = diffTime / (1000 * 3600 * 24);
+
+      if (dateOnly.getTime() === today.getTime()) {
+        groupName = 'Today';
+      } else if (dateOnly.getTime() === yesterday.getTime()) {
+        groupName = 'Yesterday';
+      } else if (diffDays <= 60) {
+        // Weekly for last 2 months
+        const startOfWeek = getStartOfWeek(dateOnly);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+        const startOption: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+        const endOption: Intl.DateTimeFormatOptions = { day: 'numeric' };
+
+        // If end of week is in different month, show both months
+        if (startOfWeek.getMonth() !== endOfWeek.getMonth()) {
+          groupName = `${startOfWeek.toLocaleDateString('en-US', startOption)} - ${endOfWeek.toLocaleDateString('en-US', startOption)}`;
+        } else {
+          groupName = `${startOfWeek.toLocaleDateString('en-US', startOption)} - ${endOfWeek.toLocaleDateString('en-US', endOption)}`;
+        }
+      } else {
+        // Monthly for older
+        const options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' };
+        groupName = dateOnly.toLocaleDateString('en-US', options);
+      }
+
+      if (!groupsMap.has(groupName)) {
+        groupsMap.set(groupName, []);
+        groupOrder.push(groupName);
+      }
+      groupsMap.get(groupName)?.push(image);
     });
+
+    // 2. Create columns for each group
+    this.groups = groupOrder.map(title => {
+      const items = groupsMap.get(title) || [];
+      const columns = Array.from({ length: this.numColumns }, () => [] as GalleryItem[]);
+      items.forEach((item, index) => {
+        columns[index % this.numColumns].push(item);
+      });
+      return { title, columns };
+    });
+  }
+
+  private filterImages() {
+    // Client-side filtering if needed, mostly handled by backend search
+    // But we might filter by status locally if statusFilter is 'FAILED' etc and backend returns all?
+    // Actually backend handles it.
+    // But we need to assign filteredImages for display if we use it?
+    // The template uses groups, which uses this.images directly in updateGroups.
+    // Let's just update groups.
+    this.updateGroups();
   }
 
   public searchTerm(): void {
     // Reset local component state for a new search to show the main loader
     this.images = [];
 
-    const filters: GallerySearchDto = { limit: 20 };
+    const filters: GallerySearchDto = { limit: 40 };
     if (this.userEmailFilter) {
       filters['userEmail'] = this.userEmailFilter;
     }

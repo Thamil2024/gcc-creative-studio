@@ -1,0 +1,48 @@
+.glass-toolbar-btn {
+  // Reset mat-button base
+  min-width: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  // Size & Shape
+  width: 32px;
+  height: 32px;
+  border-radius: 50% !important;
+  
+  // Default Style (Dark/Unselected)
+  background-color: rgba(30, 30, 30, 0.6) !important; // Darker semi-transparent
+  color: rgba(255, 255, 255, 0.7) !important;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid transparent;
+  gap: 0 !important;
+
+  ::ng-deep mat-icon {
+    // Ensure icon itself is centered if it has internal spacing
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+
+  &:hover {
+    background-color: rgba(60, 60, 60, 0.8) !important;
+    color: #fff !important;
+    transform: scale(1.05);
+  }
+
+  // Active/Selected State
+  &.active {
+    background-color: rgba(255, 255, 255, 0.9) !important; // Whiter/Lit up
+    color: #1f1f1f !important; // Dark text for contrast against white
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    
+    ::ng-deep mat-icon {
+      color: #1f1f1f !important;
+    }
+  }
+}

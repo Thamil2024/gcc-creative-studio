@@ -26,6 +26,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import {MediaItem} from '../../models/media-item.model';
+import { GalleryItem } from '../../models/gallery-item.model';
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import {Clipboard} from '@angular/cdk/clipboard';
 import {MatSnackBar} from '@angular/material/snack-bar';
@@ -42,7 +43,7 @@ import { handleErrorSnackbar, handleSuccessSnackbar } from '../../../utils/handl
 export class MediaLightboxComponent
   implements OnChanges, AfterViewInit, OnDestroy
 {
-  @Input() mediaItem: MediaItem | undefined;
+  @Input() mediaItem: MediaItem | GalleryItem | undefined;
   @Input() initialIndex = 0;
   @Input() showSeeMoreInfoButton = false;
   @Input() showShareButton = true;
@@ -142,7 +143,7 @@ export class MediaLightboxComponent
           src: url,
           width: this.imageWidth,
           height: this.imageHeight,
-          alt: this.mediaItem?.originalPrompt,
+          alt: (this.mediaItem as any).originalPrompt || this.mediaItem?.prompt,
         })),
         pswpModule: () => import('photoswipe'),
       });
@@ -228,7 +229,7 @@ export class MediaLightboxComponent
   ): string {
     const url = encodeURIComponent(this.currentImageUrl);
     const text = encodeURIComponent(
-      this.mediaItem?.originalPrompt || 'Check out this image!',
+      (this.mediaItem as any).originalPrompt || this.mediaItem?.prompt || 'Check out this image!',
     );
     switch (platform) {
       case 'facebook':
@@ -349,7 +350,7 @@ export class MediaLightboxComponent
     // For Audio, we just want a nice container, aspect-video works well for the player shape
     if (this.isAudio) return 'aspect-video h-auto';
 
-    const ratio = this.mediaItem?.aspectRatio || this.mediaItem?.aspect;
+    const ratio = this.mediaItem?.aspectRatio || (this.mediaItem as any).aspect;
     switch (ratio) {
       case '1:1':
         return 'aspect-square';
@@ -439,7 +440,7 @@ export class MediaLightboxComponent
   onExtendWithAiClick() {
     if (this.mediaItem) {
       this.extendWithAiClicked.emit({
-        mediaItem: this.mediaItem,
+        mediaItem: this.mediaItem as MediaItem,
         selectedIndex: this.selectedIndex,
       });
     }
@@ -448,7 +449,7 @@ export class MediaLightboxComponent
   onConcatenateClick() {
     if (this.mediaItem) {
       this.concatenateClicked.emit({
-        mediaItem: this.mediaItem,
+        mediaItem: this.mediaItem as MediaItem,
         selectedIndex: this.selectedIndex,
       });
     }

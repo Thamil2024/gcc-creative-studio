@@ -21,15 +21,15 @@
       <div class="title-group">
         <h1 class="page-title">My Workflows</h1>
       </div>
-      <button
+      <studio-button variant="cta" size="medium"
         mat-flat-button
-        class="btn-cta"
+        
         *ngIf="authService.isUserAdmin()"
         (click)="createNewWorkflow()"
       >
         <mat-icon>add</mat-icon>
         New
-      </button>
+      </studio-button>
     </div>
 
   </div>

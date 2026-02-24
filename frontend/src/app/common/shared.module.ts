@@ -16,6 +16,7 @@
 
 import {NgModule} from '@angular/core';
 import {CommonModule} from '@angular/common';
+import {RouterModule} from '@angular/router';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatDialogModule} from '@angular/material/dialog';
@@ -27,18 +28,32 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {MatDividerModule} from '@angular/material/divider';
 
+import { MatSliderModule } from '@angular/material/slider';
+
 import {CreateWorkspaceModalComponent} from './components/create-workspace-modal/create-workspace-modal.component';
 import {InviteUserModalComponent} from './components/invite-user-modal/invite-user-modal.component';
 import {WorkspaceSwitcherComponent} from './components/workspace-switcher/workspace-switcher.component';
 import {BrandGuidelineDialogComponent} from './components/brand-guideline-dialog/brand-guideline-dialog.component';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MarkdownModule} from 'ngx-markdown';
+import { GalleryItemOverlayComponent } from './components/gallery-item-overlay/gallery-item-overlay.component';
+import { StudioButtonComponent } from './components/studio-button/studio-button.component';
+import { StudioSliderComponent } from './components/studio-slider/studio-slider.component';
+import { StudioToolbarComponent } from './components/studio-toolbar/studio-toolbar.component';
+import { StudioToolbarButtonComponent } from './components/studio-toolbar-button/studio-toolbar-button.component';
+import { GalleryCardComponent } from './components/gallery-card/gallery-card.component';
 
 const DECLARATIONS = [
   CreateWorkspaceModalComponent,
   InviteUserModalComponent,
   WorkspaceSwitcherComponent,
   BrandGuidelineDialogComponent,
+  GalleryItemOverlayComponent,
+  StudioButtonComponent,
+  StudioSliderComponent,
+  StudioToolbarComponent,
+  StudioToolbarButtonComponent,
+  GalleryCardComponent,
 ];
 
 const MODULES = [
@@ -53,8 +68,10 @@ const MODULES = [
   MatInputModule,
   MatMenuModule,
   MatSelectModule,
+  MatSliderModule,
   MatTooltipModule,
   MatProgressSpinnerModule,
+  RouterModule,
   MarkdownModule.forRoot(),
 ];
 
@@ -70,9 +87,12 @@ const EXPORTED_MODULES = [
   MatInputModule,
   MatMenuModule,
   MatSelectModule,
+  MatSliderModule,
   MatTooltipModule,
   MatProgressSpinnerModule,
   MarkdownModule,
+  StudioToolbarComponent,
+  StudioToolbarButtonComponent,
 ];
 
 @NgModule({

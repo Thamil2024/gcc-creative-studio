@@ -22,6 +22,7 @@ import { AudioComponent } from './audio/audio.component';
 import { AuthGuardService } from './common/services/auth.guard.service';
 import { FunTemplatesComponent } from './fun-templates/fun-templates.component';
 import { MediaDetailComponent } from './gallery/media-detail/media-detail.component';
+import { AssetDetailComponent } from './gallery/asset-detail/asset-detail.component';
 import { MediaGalleryComponent } from './gallery/media-gallery/media-gallery.component';
 import { HomeComponent } from './home/home.component';
 import { LoginComponent } from './login/login.component';
@@ -56,6 +57,10 @@ const routes: Routes = [
   {
     path: 'gallery/:id',
     component: MediaDetailComponent,
+  },
+  {
+    path: 'asset-detail/:id',
+    component: AssetDetailComponent,
   },
   // Optional: Redirect the base URL to the gallery
   {

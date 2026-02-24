@@ -130,14 +130,14 @@
                 </div>
 
                 <div
-                  *ngIf="mediaItem.aspectRatio || mediaItem.aspect"
+                  *ngIf="mediaItem.aspectRatio"
                   class="contents"
                 >
                   <strong class="font-semibold text-gray-400"
                     >Aspect Ratio:</strong
                   >
                   <p class="text-right">
-                    {{ mediaItem.aspectRatio || mediaItem.aspect }}
+                    {{ mediaItem.aspectRatio }}
                   </p>
                 </div>
                 <div *ngIf="mediaItem?.resolution" class="contents">
@@ -191,7 +191,7 @@
             </section>
 
             <!-- Prompt Section -->
-            <section class="space-y-3" *ngIf="mediaItem.originalPrompt">
+            <section class="space-y-3" *ngIf="mediaItem.prompt">
               <h3 class="text-lg font-semibold border-b border-gray-700 pb-2">
                 Prompt
               </h3>
@@ -204,20 +204,20 @@
                   [class.line-clamp-3]="!isPromptExpanded"
                 >
                   {{
-                    mediaItem.originalPrompt
+                    mediaItem.prompt
                       .split(' ')
                       .slice(0, isPromptExpanded ? undefined : 20)
                       .join(' ')
                   }}<span
                     *ngIf="
                       !isPromptExpanded &&
-                      mediaItem.originalPrompt.split(' ').length > 20
+                      mediaItem.prompt.split(' ').length > 20
                     "
                     >...</span
                   >
                 </p>
                 <button
-                  *ngIf="mediaItem.originalPrompt.split(' ').length > 20"
+                  *ngIf="mediaItem.prompt.split(' ').length > 20"
                   (click)="togglePromptExpansion()"
                   class="text-blue-400 hover:text-blue-300 text-sm mt-1"
                 >
