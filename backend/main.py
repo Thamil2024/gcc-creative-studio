@@ -12,46 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# --- Setup Logging Globally First ---
-from src.config.logger_config import setup_logging
-
-setup_logging()
-
-import logging
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import asynccontextmanager
-from os import getenv
-
-from fastapi import FastAPI, Request, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-
-from src.audios.audio_controller import router as audio_router
-from src.auth import firebase_client_service
-from src.brand_guidelines.brand_guideline_controller import (
-    router as brand_guideline_router,
-)
-from src.galleries.gallery_controller import router as gallery_router
-from src.generation_options.generation_options_controller import (
-    router as generation_options_router,
-)
-from src.images.imagen_controller import router as imagen_router
-from src.media_templates.media_templates_controller import (
-    router as media_template_router,
-)
-from src.multimodal.gemini_controller import router as gemini_router
-from src.source_assets.source_asset_controller import (
-    router as source_asset_router,
-)
-from src.users.user_controller import router as user_router
-from src.videos.veo_controller import router as video_router
-
-from src.workflows.workflow_controller import router as workflow_router
-from src.workflows_executor.workflows_executor_controller import (
-    router as workflows_executor_router,
-)
-from src.workspaces.workspace_controller import router as workspace_router
-from src.workbench.router import router as workbench_router
 
 # Get a logger instance for use in this file. It will inherit the root setup.
 logger = logging.getLogger(__name__)
