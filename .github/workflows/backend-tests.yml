@@ -13,6 +13,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: 'dummy-project-id'
+
 
     steps:
     - name: Checkout code
