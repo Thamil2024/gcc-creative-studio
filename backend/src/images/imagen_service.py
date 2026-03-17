@@ -522,7 +522,7 @@ def gemini_generate_image(
 def _process_image_in_background(
     media_item_id: int,
     request_dto: CreateImagenDto,
-    _current_user: UserModel,
+    current_user: UserModel,
 ):
     """Background worker to handle image generation, GCS upload, and DB
     update."""

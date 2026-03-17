@@ -175,8 +175,6 @@ async def upload_upscale(
         gcs_uri=gcs_uri,
         file_bytes=file_bytes,
         filename=filename,
-        # original_filename=original_filename,
-        # file_hash=file_hash,
         scope=scope,
         mime_type=mime_type,
         enhance_input_image=enhance_input_image,

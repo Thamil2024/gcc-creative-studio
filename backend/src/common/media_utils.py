@@ -55,7 +55,7 @@ def generate_image_thumbnail_bytes(
             format_to_save = "PNG" if mime_type == "image/png" else "JPEG"
             img.save(output, format=format_to_save, optimize=True)
             return output.getvalue()
-    except (OSError, ValueError) as e:
+    except Exception as e:
         logger.error("Error generating image thumbnail: %s", e)
         return None
 
@@ -107,7 +107,7 @@ def generate_image_thumbnail_from_gcs(
             mime_type,
         )
 
-    except (OSError, ValueError, exceptions.GoogleAPIError) as e:
+    except Exception as e:
         logger.error("Thumbnail generation failed: %s", e)
         return None
 

@@ -183,7 +183,7 @@ class GcsService:
         try:
             blob = self.bucket.blob(destination_blob_name)
             blob.upload_from_string(content_bytes, content_type=mime_type)
-            return "gs://%s/%s", self.bucket_name, destination_blob_name
+            return f"gs://{self.bucket_name}/{destination_blob_name}"
         except exceptions.NotFound:
             logger.error("Blob '%s' not found.", destination_blob_name)
             return None
@@ -253,7 +253,7 @@ class GcsService:
             else:
                 return ""
 
-            return "gs://%s/%s", actual_bucket_name, destination_blob_name
+            return f"gs://{actual_bucket_name}/{destination_blob_name}"
         except exceptions.NotFound:
             logger.error(
                 "Blob '%s' not found in bucket '%s'.",

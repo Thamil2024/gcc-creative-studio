@@ -141,8 +141,6 @@ class TestImagenServiceMethods:
             workspace_id=1,
             gcs_uri="gs://input/original.png",
             mime_type="image/png",
-            original_filename="original.png",
-            file_hash="h123",
             file_bytes=b"fake_bytes",  # pass bytes to bypass validation GCS check
         )
 
@@ -304,8 +302,6 @@ class TestImagenServiceMethods:
                     upscale_factor="x4",
                     mime_type="image/png",
                     gcs_uri="",
-                    original_filename=None,
-                    file_hash=None,
                 )
 
             assert exc_info.value.status_code == 400
@@ -350,8 +346,6 @@ class TestImagenServiceMethods:
             upscale_factor="x4",
             mime_type="image/png",
             gcs_uri="",
-            original_filename=None,
-            file_hash=None,
         )
 
         assert response is not None
@@ -868,17 +862,23 @@ def test_process_upload_upscale_in_background_sync(
 
     with (
         patch(
-            "src.images.repository.media_item_repository.MediaRepository",
+            "src.images.imagen_service.MediaRepository",
         ) as mock_media_repo_class,
         patch(
-            "src.source_assets.repository.source_asset_repository.SourceAssetRepository",
+            "src.images.imagen_service.SourceAssetRepository",
         ) as mock_source_asset_repo_class,
         patch(
             "src.images.imagen_service.ImagenService",
         ) as mock_imagen_service_class,
         patch(
-            "src.common.storage_service.GcsService",
+            "src.images.imagen_service.GcsService",
         ) as mock_gcs_class,
+        patch(
+            "src.images.imagen_service.IamSignerCredentials",
+        ) as mock_iam_signer_class,
+        patch(
+            "src.images.imagen_service.GeminiService",
+        ) as mock_gemini_service_class,
     ):
         mock_media_repo = AsyncMock()
         mock_media_repo_class.return_value = mock_media_repo
@@ -912,8 +912,6 @@ def test_process_upload_upscale_in_background_sync(
             file_bytes=None,
             filename=None,
             upscale_factor="x4",
-            original_filename="original.png",
-            file_hash="h123",
             aspect_ratio=None,
             source_asset_id=301,
         )
@@ -941,17 +939,23 @@ def test_process_upload_upscale_in_background_sync_new_file(
 
     with (
         patch(
-            "src.images.repository.media_item_repository.MediaRepository",
+            "src.images.imagen_service.MediaRepository",
         ) as mock_media_repo_class,
         patch(
-            "src.source_assets.repository.source_asset_repository.SourceAssetRepository",
+            "src.images.imagen_service.SourceAssetRepository",
         ) as mock_source_asset_repo_class,
         patch(
             "src.source_assets.source_asset_service.SourceAssetService",
         ) as mock_sa_service_class,
         patch(
-            "src.common.storage_service.GcsService",
+            "src.images.imagen_service.GcsService",
         ) as mock_gcs_class,
+        patch(
+            "src.images.imagen_service.IamSignerCredentials",
+        ) as mock_iam_signer_class,
+        patch(
+            "src.images.imagen_service.GeminiService",
+        ) as mock_gemini_service_class,
     ):
         mock_media_repo = AsyncMock()
         mock_media_repo_class.return_value = mock_media_repo
@@ -980,8 +984,6 @@ def test_process_upload_upscale_in_background_sync_new_file(
             file_bytes=b"fake_bytes",
             filename="test.png",
             upscale_factor="x4",
-            original_filename="test.png",
-            file_hash="h123",
             aspect_ratio=None,
             source_asset_id=None,
         )
