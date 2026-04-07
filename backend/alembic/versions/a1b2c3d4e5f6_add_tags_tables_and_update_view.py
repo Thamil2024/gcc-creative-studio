@@ -39,10 +39,31 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("workspace_id", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint("name", "workspace_id", name="uq_tag_name_workspace"),
+        sa.Column("user_id", sa.Integer(), nullable=True),
+        sa.Column(
+            "color", sa.String(), nullable=False, server_default="#E8EAED"
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["workspace_id"], ["workspaces.id"], ondelete="CASCADE"
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"], ["users.id"], ondelete="CASCADE"
+        ),
+        sa.UniqueConstraint(
+            "name", "workspace_id", name="uq_tag_name_workspace"
+        ),
     )
 
     # 2. Create media_item_tags table
@@ -50,7 +71,9 @@ def upgrade() -> None:
         "media_item_tags",
         sa.Column("media_item_id", sa.Integer(), nullable=False),
         sa.Column("tag_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(["media_item_id"], ["media_items.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["media_item_id"], ["media_items.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["tag_id"], ["tags.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("media_item_id", "tag_id"),
     )
@@ -60,12 +83,14 @@ def upgrade() -> None:
         "source_asset_tags",
         sa.Column("source_asset_id", sa.Integer(), nullable=False),
         sa.Column("tag_id", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(["source_asset_id"], ["source_assets.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["source_asset_id"], ["source_assets.id"], ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["tag_id"], ["tags.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("source_asset_id", "tag_id"),
     )
 
-    # 4. Update unified_gallery_view to include tags
+    # 4. Update unified_gallery_view to include tags (aggregated objects)
     op.execute("DROP VIEW IF EXISTS unified_gallery_view;")
     op.execute(
         """
@@ -95,7 +120,7 @@ def upgrade() -> None:
             'is_video', (mi.mime_type like 'video%'),
             'is_audio', (mi.mime_type like 'audio%'),
             'tags', (
-                SELECT jsonb_agg(t.name)
+                SELECT jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name, 'color', t.color, 'workspace_id', t.workspace_id))
                 FROM media_item_tags mit
                 JOIN tags t ON mit.tag_id = t.id
                 WHERE mit.media_item_id = mi.id
@@ -125,7 +150,7 @@ def upgrade() -> None:
             'is_video', (sa.mime_type like 'video%'),
             'is_audio', (sa.mime_type like 'audio%'),
             'tags', (
-                SELECT jsonb_agg(t.name)
+                SELECT jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name, 'color', t.color, 'workspace_id', t.workspace_id))
                 FROM source_asset_tags sat
                 JOIN tags t ON sat.tag_id = t.id
                 WHERE sat.source_asset_id = sa.id
@@ -139,9 +164,10 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # 1. Revert unified_gallery_view to previous definition (without tags)
+    op.execute("DROP VIEW IF EXISTS unified_gallery_view;")
     op.execute(
         """
-    CREATE OR REPLACE VIEW unified_gallery_view AS
+    CREATE VIEW unified_gallery_view AS
     SELECT
         id,
         workspace_id,

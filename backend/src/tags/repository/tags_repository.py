@@ -17,8 +17,14 @@ from sqlalchemy import delete, select, update, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.common.base_repository import BaseRepository
+from src.common.dto.pagination_response_dto import PaginationResponseDto
 from src.database import get_db
-from src.tags.schema.tags_model import Tag, TagModel, media_item_tags, source_asset_tags
+from src.tags.schema.tags_model import (
+    Tag,
+    TagModel,
+    media_item_tags,
+    source_asset_tags,
+)
 
 
 class TagsRepository(BaseRepository[Tag, TagModel]):
@@ -27,20 +33,53 @@ class TagsRepository(BaseRepository[Tag, TagModel]):
     def __init__(self, db: AsyncSession = Depends(get_db)):
         super().__init__(model=Tag, schema=TagModel, db=db)
 
-    async def get_by_workspace(self, workspace_id: int, search: str | None = None) -> list[TagModel]:
+    async def get_by_workspace(
+        self,
+        workspace_id: int,
+        search: str | None = None,
+        limit: int = 10,
+        offset: int = 0,
+        user_id: int | None = None,
+    ) -> PaginationResponseDto[TagModel]:
         """Retrieves all tags for a specific workspace, optionally filtered by name."""
-        query = select(self.model).where(self.model.workspace_id == workspace_id)
-        
+        query = select(self.model).where(
+            self.model.workspace_id == workspace_id
+        )
+
         if search:
             query = query.where(self.model.name.ilike(f"%{search}%"))
-        else:
-            query = query.order_by(self.model.updated_at.desc()).limit(10)
-            
+
+        if user_id:
+            query = query.where(self.model.user_id == user_id)
+
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        count_result = await self.db.execute(count_query)
+        total_count = count_result.scalar_one()
+
+        # Add ordering and pagination
+        query = query.order_by(self.model.updated_at.desc())
+        query = query.offset(offset).limit(limit)
+
         result = await self.db.execute(query)
         tags = result.scalars().all()
-        return [self.schema.model_validate(tag) for tag in tags]
+        data = [self.schema.model_validate(tag) for tag in tags]
 
-    async def find_by_name(self, name: str, workspace_id: int) -> TagModel | None:
+        page = (offset // limit) + 1
+        page_size = limit
+        total_pages = (total_count + page_size - 1) // page_size
+
+        return PaginationResponseDto[TagModel](
+            count=total_count,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+            data=data,
+        )
+
+    async def find_by_name(
+        self, name: str, workspace_id: int
+    ) -> TagModel | None:
         """Finds a tag by name within a specific workspace."""
         result = await self.db.execute(
             select(self.model)
@@ -56,7 +95,9 @@ class TagsRepository(BaseRepository[Tag, TagModel]):
     async def count_by_workspace(self, workspace_id: int) -> int:
         """Counts tags in a workspace."""
         result = await self.db.execute(
-            select(func.count(self.model.id)).where(self.model.workspace_id == workspace_id)
+            select(func.count(self.model.id)).where(
+                self.model.workspace_id == workspace_id
+            )
         )
         return result.scalar_one()
 
@@ -69,11 +110,15 @@ class TagsRepository(BaseRepository[Tag, TagModel]):
         )
         # Update updated_at of the tag to track usage!
         await self.db.execute(
-            update(self.model).where(self.model.id == tag_id).values(updated_at=func.now())
+            update(self.model)
+            .where(self.model.id == tag_id)
+            .values(updated_at=func.now())
         )
         await self.db.commit()
 
-    async def assign_tag_to_source_asset(self, source_asset_id: int, tag_id: int):
+    async def assign_tag_to_source_asset(
+        self, source_asset_id: int, tag_id: int
+    ):
         """Links a tag to a source asset."""
         await self.db.execute(
             pg_insert(source_asset_tags)
@@ -82,7 +127,9 @@ class TagsRepository(BaseRepository[Tag, TagModel]):
         )
         # Update updated_at of the tag to track usage!
         await self.db.execute(
-            update(self.model).where(self.model.id == tag_id).values(updated_at=func.now())
+            update(self.model)
+            .where(self.model.id == tag_id)
+            .values(updated_at=func.now())
         )
         await self.db.commit()
 
@@ -95,7 +142,9 @@ class TagsRepository(BaseRepository[Tag, TagModel]):
         )
         await self.db.commit()
 
-    async def remove_tag_from_source_asset(self, source_asset_id: int, tag_id: int):
+    async def remove_tag_from_source_asset(
+        self, source_asset_id: int, tag_id: int
+    ):
         """Unlinks a tag from a source asset."""
         await self.db.execute(
             delete(source_asset_tags)
@@ -104,24 +153,46 @@ class TagsRepository(BaseRepository[Tag, TagModel]):
         )
         await self.db.commit()
 
-    async def update_tag(self, id: int, name: str | None = None, color: str | None = None) -> TagModel | None:
+    async def clear_tags_for_media_item(self, media_item_id: int):
+        """Removes all tags from a media item."""
+        await self.db.execute(
+            delete(media_item_tags).where(
+                media_item_tags.c.media_item_id == media_item_id
+            )
+        )
+        await self.db.commit()
+
+    async def clear_tags_for_source_asset(self, source_asset_id: int):
+        """Removes all tags from a source asset."""
+        await self.db.execute(
+            delete(source_asset_tags).where(
+                source_asset_tags.c.source_asset_id == source_asset_id
+            )
+        )
+        await self.db.commit()
+
+    async def update_tag(
+        self, id: int, name: str | None = None, color: str | None = None
+    ) -> TagModel | None:
         """Updates a tag's name and/or color."""
         values = {}
         if name is not None:
             values["name"] = name
         if color is not None:
             values["color"] = color
-            
+
         if not values:
             return await self.get_by_id(id)
-            
+
         await self.db.execute(
             update(self.model).where(self.model.id == id).values(**values)
         )
         await self.db.commit()
         return await self.get_by_id(id)
 
-    async def get_tags_for_media_item(self, media_item_id: int) -> list[TagModel]:
+    async def get_tags_for_media_item(
+        self, media_item_id: int
+    ) -> list[TagModel]:
         """Gets all tags linked to a media item."""
         result = await self.db.execute(
             select(Tag)
@@ -131,7 +202,9 @@ class TagsRepository(BaseRepository[Tag, TagModel]):
         tags = result.scalars().all()
         return [self.schema.model_validate(tag) for tag in tags]
 
-    async def get_tags_for_source_asset(self, source_asset_id: int) -> list[TagModel]:
+    async def get_tags_for_source_asset(
+        self, source_asset_id: int
+    ) -> list[TagModel]:
         """Gets all tags linked to a source asset."""
         result = await self.db.execute(
             select(Tag)

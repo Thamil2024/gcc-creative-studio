@@ -31,6 +31,7 @@ export interface DropdownOption {
   color?: string;
   icon?: string;
   isSvgIcon?: boolean;
+  deletable?: boolean;
 }
 
 @Component({
@@ -74,10 +75,16 @@ export class StudioDropdownComponent {
   @Input() multiple = false;
   @Input() deletable = false;
   @Input() searchable = false;
+  @Input() hasMore = false;
+  @Input() showCheckbox = false;
+  @Input() checkboxChecked = false;
+  @Input() checkboxLabel = 'Show only My tags';
 
   @Output() valueChange = new EventEmitter<any>();
   @Output() optionDeleted = new EventEmitter<DropdownOption>();
   @Output() searchChange = new EventEmitter<string>();
+  @Output() loadMore = new EventEmitter<void>();
+  @Output() checkboxChange = new EventEmitter<boolean>();
 
   isOpen = false;
   searchQuery = '';
@@ -128,11 +135,20 @@ export class StudioDropdownComponent {
       if (!Array.isArray(this.value)) {
         this.value = [];
       }
-      const index = this.value.indexOf(option.value);
-      if (index > -1) {
-        this.value.splice(index, 1);
+      if (option.value === '') {
+        this.value = []; // Clear all selections if "All Tags" is selected
       } else {
-        this.value.push(option.value);
+        const index = this.value.indexOf(option.value);
+        if (index > -1) {
+          this.value.splice(index, 1);
+        } else {
+          this.value.push(option.value);
+        }
+        // Ensure empty string is not in the array if we selected a specific option
+        const emptyIndex = this.value.indexOf('');
+        if (emptyIndex > -1) {
+          this.value.splice(emptyIndex, 1);
+        }
       }
       this.valueChange.emit([...this.value]); // Emit a new array reference
     } else {

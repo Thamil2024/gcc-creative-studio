@@ -14,7 +14,16 @@
 
 import datetime
 from pydantic import Field
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, DateTime, func, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    DateTime,
+    func,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from src.common.base_repository import BaseDocument
 from src.database import Base
@@ -23,17 +32,30 @@ from src.database import Base
 media_item_tags = Table(
     "media_item_tags",
     Base.metadata,
-    Column("media_item_id", ForeignKey("media_items.id", ondelete="CASCADE"), primary_key=True),
-    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "media_item_id",
+        ForeignKey("media_items.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
+    ),
 )
 
 # Association table for SourceAsset and Tag
 source_asset_tags = Table(
     "source_asset_tags",
     Base.metadata,
-    Column("source_asset_id", ForeignKey("source_assets.id", ondelete="CASCADE"), primary_key=True),
-    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "source_asset_id",
+        ForeignKey("source_assets.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
+    ),
 )
+
 
 class Tag(Base):
     """SQLAlchemy model for the 'tags' table."""
@@ -42,10 +64,16 @@ class Tag(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    color: Mapped[str] = mapped_column(String, nullable=False, server_default='#E8EAED')
+    color: Mapped[str] = mapped_column(
+        String, nullable=False, server_default="#E8EAED"
+    )
     workspace_id: Mapped[int] = mapped_column(
         ForeignKey("workspaces.id", ondelete="CASCADE"),
         nullable=False,
+    )
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
     )
 
     created_at: Mapped[datetime.datetime] = mapped_column(
@@ -70,5 +98,12 @@ class TagModel(BaseDocument):
 
     id: int | None = None
     name: str = Field(description="The name of the tag.")
-    workspace_id: int = Field(description="The ID of the workspace this tag belongs to.")
-    color: str | None = Field(default='#E8EAED', description="The color of the tag in hex format.")
+    workspace_id: int = Field(
+        description="The ID of the workspace this tag belongs to."
+    )
+    color: str | None = Field(
+        default="#E8EAED", description="The color of the tag in hex format."
+    )
+    user_id: int | None = Field(
+        default=None, description="The ID of the user who created the tag."
+    )

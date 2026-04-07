@@ -173,8 +173,9 @@ export class ImageSelectorComponent implements OnInit {
     }
   }
 
-  onMediaSelected(item: any): void {
-    const id = `${item.itemType}:${item.id}`;
+  onMediaSelected(selection: MediaItemSelection): void {
+    const item = selection.mediaItem as any;
+    const id = `${item.itemType || 'media_item'}:${item.id}`;
     if (this.selectedMediaItems.has(id)) {
       this.selectedMediaItems.delete(id);
     } else {
@@ -186,8 +187,10 @@ export class ImageSelectorComponent implements OnInit {
       ) {
         return;
       }
-      this.selectedMediaItems.set(id, item);
+      this.selectedMediaItems.set(id, selection);
     }
+    // Recreate Map to trigger change detection
+    this.selectedMediaItems = new Map(this.selectedMediaItems);
   }
 
   onMediaItemSelected(selection: MediaItemSelection): void {
@@ -223,7 +226,8 @@ export class ImageSelectorComponent implements OnInit {
     const totalSelected = this.selectedMediaItems.size;
     if (totalSelected === 0) return;
 
-    const results = Array.from(this.selectedMediaItems.values()).map(item => {
+    const results = Array.from(this.selectedMediaItems.values()).map(selection => {
+      const item = (selection as any).mediaItem as any;
       if (item.itemType === 'source_asset') {
         return {
           id: item.id,
@@ -240,10 +244,7 @@ export class ImageSelectorComponent implements OnInit {
           presignedOriginalUrl: item.originalPresignedUrls?.[0] || '',
         } as SourceAssetResponseDto;
       }
-      return {
-        mediaItem: item as MediaItem,
-        selectedIndex: 0,
-      } as MediaItemSelection;
+      return selection as unknown as MediaItemSelection;
     });
 
     // If multiSelect is false but we somehow got here, return just the first item

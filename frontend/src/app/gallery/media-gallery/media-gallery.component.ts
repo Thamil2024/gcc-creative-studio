@@ -1,3 +1,4 @@
+import {trigger, state, style, transition, animate} from '@angular/animations';
 /**
  * Copyright 2025 Google LLC
  *
@@ -57,6 +58,24 @@ import {ConfirmationDialogComponent} from '../../common/components/confirmation-
   selector: 'app-media-gallery',
   templateUrl: './media-gallery.component.html',
   styleUrl: './media-gallery.component.scss',
+  providers: [GalleryService],
+  animations: [
+    trigger('fadeSlideInOut', [
+      transition(':enter', [
+        style({opacity: 0, transform: 'translateY(-10px)'}),
+        animate(
+          '300ms ease-out',
+          style({opacity: 1, transform: 'translateY(0)'}),
+        ),
+      ]),
+      transition(':leave', [
+        animate(
+          '300ms ease-in',
+          style({opacity: 0, transform: 'translateY(-10px)'}),
+        ),
+      ]),
+    ]),
+  ],
 })
 export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
   @Output() mediaItemSelected = new EventEmitter<MediaItemSelection>();
@@ -75,7 +94,16 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
   @Input() isSelectorMode = false;
   @Input() maxSelection: number | null = null;
   @Input() filterByUserEmail: string | null = null;
-  @Output() mediaSelected = new EventEmitter<GalleryItem>();
+  @Input() showFiltersInSelector = false;
+  private isInitialized = false;
+
+  @Input() set itemType(value: string) {
+    this.assetTypeFilter = value;
+    if (this.isInitialized) {
+      this.searchTerm();
+    }
+  }
+  @Output() mediaSelected = new EventEmitter<MediaItemSelection>();
 
   images: GalleryItem[] = [];
   filteredImages: GalleryItem[] = [];
@@ -90,6 +118,11 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
   public isDeleting = false;
   public isDownloading = false;
   public isCopying = false;
+  public showAdvancedFilters = false;
+
+  toggleAdvancedFilters() {
+    this.showAdvancedFilters = !this.showAdvancedFilters;
+  }
   private imagesSubscription: Subscription | undefined;
   private allImagesLoadedSubscription: Subscription | undefined;
   private loadingSubscription: Subscription | undefined;
@@ -110,8 +143,31 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     {value: 'media_item', label: 'Generated Media'},
     {value: 'source_asset', label: 'Uploaded Assets'},
   ];
-  public tagOptions: DropdownOption[] = [];
   public availableTags: TagModel[] = [];
+  tagsPageSize = 10;
+  tagsCurrentPage = 1;
+  onlyMyTags = true;
+  userId: number | undefined;
+
+  get displayedTagOptions(): DropdownOption[] {
+    const options = [
+      {value: '', label: 'All Tags', deletable: false},
+      ...this.availableTags.map(t => ({
+        value: t.name,
+        label: t.name,
+        color: t.color,
+      })),
+    ];
+    return options.slice(0, 1 + this.tagsCurrentPage * this.tagsPageSize);
+  }
+
+  loadMoreTags(): void {
+    this.tagsCurrentPage++;
+  }
+
+  hasMoreTags(): boolean {
+    return this.availableTags.length > this.tagsCurrentPage * this.tagsPageSize;
+  }
   public generationModels = MODEL_CONFIGS.map(config => ({
     value: config.value,
     viewValue: config.viewValue.replace('\n', ''), // Remove newlines for dropdown
@@ -125,10 +181,35 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
   ];
 
   public get modelOptions(): DropdownOption[] {
+    let filteredModels = MODEL_CONFIGS;
+
+    if (this.mediaTypeFilter === 'image/*') {
+      filteredModels = MODEL_CONFIGS.filter(m => m.type === 'IMAGE');
+    } else if (this.mediaTypeFilter === 'video/*') {
+      filteredModels = MODEL_CONFIGS.filter(m => m.type === 'VIDEO');
+    } else if (this.mediaTypeFilter === 'audio/*') {
+      filteredModels = MODEL_CONFIGS.filter(m => m.type === 'AUDIO');
+    }
+
     return [
       {value: '', label: 'All Models'},
-      ...this.generationModels.map(m => ({value: m.value, label: m.viewValue})),
+      ...filteredModels.map(m => ({
+        value: m.value,
+        label: m.viewValue.replace('\n', ''),
+      })),
     ];
+  }
+
+  onMediaTypeChange(value: string): void {
+    this.mediaTypeFilter = value;
+
+    // Reset model filter if not valid for new media type
+    const validModels = this.modelOptions.map(o => o.value);
+    if (!validModels.includes(this.generationModelFilter)) {
+      this.generationModelFilter = ''; // Reset to All Models
+    }
+
+    this.searchTerm(); // Trigger search
   }
 
   private autoSlideIntervals: {[id: string]: any} = {};
@@ -158,6 +239,8 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
         'gemini-spark-icon',
         this.setPath(`${this.path}/gemini-spark-icon.svg`),
       );
+    const user = this.userService.getUserDetails();
+    this.userId = user?.id as number;
   }
 
   private path = '../../assets/images';
@@ -167,6 +250,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.isInitialized = true;
     const userDetails = this.userService.getUserDetails();
     this.isAdmin = userDetails?.roles?.includes(UserRolesEnum.ADMIN) || false;
 
@@ -204,26 +288,46 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.isBrowser) {
       this.searchTerm();
       this.showFeaturesHint();
-      this.loadTags();
+
+      this.workspaceStateService.activeWorkspaceId$.subscribe(workspaceId => {
+        if (workspaceId) {
+          this.tagsCurrentPage = 1;
+          this.loadTags();
+        }
+      });
     }
   }
 
   private loadTags(search?: string): void {
     const workspaceId = this.workspaceStateService.getActiveWorkspaceId();
     if (workspaceId) {
-      this.tagsService.getTags(workspaceId, search).subscribe(tags => {
-        if (Array.isArray(tags)) {
-          this.availableTags = tags;
-          this.tagOptions = [
-            {value: '', label: 'All Tags'},
-            ...tags.map(t => ({value: t.name, label: t.name, color: t.color})),
-          ];
-        }
-      });
+      const filterUserId = this.onlyMyTags ? this.userId : undefined;
+      this.tagsService
+        .getTags(
+          workspaceId,
+          search,
+          this.tagsCurrentPage,
+          this.tagsPageSize,
+          filterUserId,
+        )
+        .subscribe(response => {
+          if (this.tagsCurrentPage === 1) {
+            this.availableTags = response.data;
+          } else {
+            this.availableTags = [...this.availableTags, ...response.data];
+          }
+        });
     }
   }
 
+  toggleOnlyMyTags(checked: boolean): void {
+    this.onlyMyTags = checked;
+    this.tagsCurrentPage = 1; // Reset pagination
+    this.loadTags();
+  }
+
   onTagSearch(search: string): void {
+    this.tagsCurrentPage = 1;
     this.loadTags(search);
   }
 
@@ -253,7 +357,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
 
   openTagsManagement(): void {
     const dialogRef = this.dialog.open(TagsManagementDialogComponent, {
-      width: '400px',
+      width: '600px',
     });
 
     dialogRef.afterClosed().subscribe(() => {
@@ -299,7 +403,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     this.deselectAll();
   }
 
-  toggleSelection(item: GalleryItem, event?: MouseEvent): void {
+  toggleSelection(item: GalleryItem, event?: MouseEvent, selectedIndex: number = 0): void {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -318,14 +422,14 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
         const id = `${rangeItem.itemType}:${rangeItem.id}`;
         if (!this.selectedItems.has(id)) {
           this.selectedItems.add(id);
-          this.mediaSelected.emit(rangeItem);
+          this.mediaSelected.emit({mediaItem: rangeItem as unknown as MediaItem, selectedIndex: 0});
         }
       }
     } else {
       const id = `${item.itemType}:${item.id}`;
       if (this.selectedItems.has(id)) {
         this.selectedItems.delete(id);
-        this.mediaSelected.emit(item);
+        this.mediaSelected.emit({mediaItem: item as unknown as MediaItem, selectedIndex});
       } else {
         // If maxSelection is 1, clear previous and select new
         if (this.maxSelection === 1) {
@@ -337,7 +441,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
           return;
         }
         this.selectedItems.add(id);
-        this.mediaSelected.emit(item);
+        this.mediaSelected.emit({mediaItem: item as unknown as MediaItem, selectedIndex});
       }
     }
     this.lastSelectedIndex = currentIndex;
@@ -472,6 +576,20 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+  getCombinedTags(): string[] {
+    const tags = new Set<string>();
+    this.selectedItems.forEach(selectedId => {
+      const [type, id] = selectedId.split(':');
+      const item = this.images.find(
+        img => img.id === parseInt(id) && img.itemType === type,
+      );
+      if (item && item.tags) {
+        item.tags.forEach(t => tags.add(t.name));
+      }
+    });
+    return Array.from(tags);
+  }
+
   openBulkAssignTagsDialog(): void {
     if (this.selectedItems.size === 0) return;
 
@@ -480,7 +598,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
       data: {
         assetId: 0,
         assetType: '',
-        existingTags: [],
+        existingTags: this.getCombinedTags(),
       },
     });
 
@@ -503,61 +621,40 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
       .filter(id => id.startsWith('source_asset:'))
       .map(id => parseInt(id.split(':')[1]));
 
-    const missingTags = selectedTags.filter(
-      name => !this.availableTags.some(t => t.name === name),
-    );
+    const observables = [];
+    if (mediaItemIds.length > 0) {
+      observables.push(
+        this.tagsService.bulkAssign(
+          workspaceId,
+          mediaItemIds,
+          'media_item',
+          selectedTags,
+        ),
+      );
+    }
+    if (sourceAssetIds.length > 0) {
+      observables.push(
+        this.tagsService.bulkAssign(
+          workspaceId,
+          sourceAssetIds,
+          'source_asset',
+          selectedTags,
+        ),
+      );
+    }
 
-    const createObservables = missingTags.map(name =>
-      this.tagsService.createTag(workspaceId, name),
-    );
-
-    const afterTagsResolved = () => {
-      const tagIds = selectedTags
-        .map(name => {
-          const tag = this.availableTags.find(t => t.name === name);
-          return tag ? tag.id : null;
-        })
-        .filter(id => id !== null) as number[];
-
-      if (mediaItemIds.length > 0 && tagIds.length > 0) {
-        this.tagsService
-          .bulkAssign(workspaceId, mediaItemIds, 'media_item', tagIds)
-          .subscribe({
-            next: () => {
-              this.snackBar.open('Tags assigned to generated media', 'Close', {
-                duration: 3000,
-              });
-              this.searchTerm();
-            },
-            error: err => console.error('Error assigning tags:', err),
+    if (observables.length > 0) {
+      forkJoin(observables).subscribe({
+        next: () => {
+          this.snackBar.open('Tags assigned successfully', 'Close', {
+            duration: 3000,
           });
-      }
-
-      if (sourceAssetIds.length > 0 && tagIds.length > 0) {
-        this.tagsService
-          .bulkAssign(workspaceId, sourceAssetIds, 'source_asset', tagIds)
-          .subscribe({
-            next: () => {
-              this.snackBar.open('Tags assigned to uploaded assets', 'Close', {
-                duration: 3000,
-              });
-              this.searchTerm();
-            },
-            error: err => console.error('Error assigning tags:', err),
-          });
-      }
-
-      this.selectedItems.clear();
-      this.lastSelectedIndex = null;
-    };
-
-    if (createObservables.length > 0) {
-      forkJoin(createObservables).subscribe(newTags => {
-        this.availableTags.push(...newTags);
-        afterTagsResolved();
+          this.selectedItems.clear();
+          this.lastSelectedIndex = null;
+          this.searchTerm();
+        },
+        error: err => console.error('Error assigning tags:', err),
       });
-    } else {
-      afterTagsResolved();
     }
   }
 
@@ -699,6 +796,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     // Reset local component state for a new search to show the main loader
     this.images = [];
     this.selectedItems.clear();
+    this.tagsCurrentPage = 1; // Reset tags pagination on search
 
     const filters: GallerySearchDto = {limit: 40};
     if (this.queryFilter.trim()) {

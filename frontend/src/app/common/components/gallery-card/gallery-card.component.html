@@ -122,6 +122,19 @@
   >
     <mat-icon *ngIf="isSelected">check</mat-icon>
   </div>
+  
+  <!-- Tags Section -->
+  <div class="tags-section" *ngIf="(item.tags?.length ?? 0) > 0 || isAdmin">
+    <mat-chip-set>
+      <mat-chip *ngFor="let tag of displayedTags" class="!min-h-[16px] !text-[9px] !px-1" [style.--tag-color]="tag.color || '#E8EAED'">
+        {{ tag.name }}
+      </mat-chip>
+      <mat-chip *ngIf="hiddenTagsCount > 0" class="!min-h-[16px] !text-[9px] !px-1 !bg-neutral-800 !text-white">
+        +{{ hiddenTagsCount }} more
+      </mat-chip>
+    </mat-chip-set>
+  </div>
+  
   </div>
 
   <!-- Carousel Controls: Only show if there's more than one image -->
@@ -166,16 +179,4 @@
       ></span>
     </div>
   </ng-container>
-  <!-- Tags Section -->
-  <div class="tags-section p-2 flex flex-wrap gap-1 items-center" *ngIf="(item.metadata?.tags?.length ?? 0) > 0 || isAdmin">
-    <mat-chip-set>
-      <mat-chip *ngFor="let tag of item.metadata.tags" class="!min-h-[24px] !text-xs">
-        {{ tag }}
-      </mat-chip>
-    </mat-chip-set>
-    
-    <button mat-icon-button *ngIf="isAdmin" (click)="openAssignTagsDialog($event)" title="Assign Tags" class="!w-6 !h-6 !leading-6">
-      <mat-icon class="!text-sm">add_circle</mat-icon>
-    </button>
-  </div>
 </div>

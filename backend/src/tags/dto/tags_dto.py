@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from pydantic import BaseModel, Field
+from src.common.dto.base_search_dto import BaseSearchDto
 
 
 class TagCreateDto(BaseModel):
@@ -20,22 +21,34 @@ class TagCreateDto(BaseModel):
     workspace_id: int = Field(
         ..., description="The ID of the workspace this tag belongs to."
     )
-    color: str | None = Field(default=None, description="The color of the tag in hex format.")
+    color: str | None = Field(
+        default=None, description="The color of the tag in hex format."
+    )
 
 
 class TagUpdateDto(BaseModel):
-    name: str | None = Field(default=None, description="The new name of the tag.")
-    color: str | None = Field(default=None, description="The new color of the tag.")
+    name: str | None = Field(
+        default=None, description="The new name of the tag."
+    )
+    color: str | None = Field(
+        default=None, description="The new color of the tag."
+    )
 
 
 class BulkAssignTagsDto(BaseModel):
     workspace_id: int = Field(
         ..., description="The ID of the workspace these items belong to."
     )
-    item_ids: list[int] = Field(
-        ..., description="List of IDs of items to tag."
+    item_ids: list[int] = Field(..., description="List of IDs of items to tag.")
+    item_type: str = Field(..., description="'media_item' or 'source_asset'")
+    tag_names: list[str] = Field(
+        ..., description="List of tag names to assign."
     )
-    item_type: str = Field(
-        ..., description="'media_item' or 'source_asset'"
+
+
+class TagSearchDto(BaseSearchDto):
+    workspace_id: int | None = Field(
+        None, description="The ID of the workspace to search within."
     )
-    tag_ids: list[int] = Field(..., description="List of tag IDs to assign.")
+    search: str | None = Field(None, description="Search query for tag name.")
+    user_id: int | None = Field(None, description="Filter by user ID.")

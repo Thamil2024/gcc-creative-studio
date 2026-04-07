@@ -14,8 +14,15 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.auth.auth_guard import RoleChecker, get_current_user
-from src.tags.dto.tags_dto import BulkAssignTagsDto, TagCreateDto, TagUpdateDto
+from src.common.dto.pagination_response_dto import PaginationResponseDto
+from src.tags.dto.tags_dto import (
+    BulkAssignTagsDto,
+    TagCreateDto,
+    TagUpdateDto,
+    TagSearchDto,
+)
 from src.tags.tags_service import TagsService
+from src.tags.schema.tags_model import TagModel
 from src.users.user_model import UserModel, UserRoleEnum
 from src.workspaces.workspace_auth_guard import WorkspaceAuth
 
@@ -36,23 +43,28 @@ router = APIRouter(
 )
 
 
-@router.get("")
-async def list_tags(
-    workspace_id: int | None = None,
-    search: str | None = None,
+@router.post("/search", response_model=PaginationResponseDto[TagModel])
+async def search_tags(
+    search_dto: TagSearchDto,
     current_user: UserModel = Depends(get_current_user),
     service: TagsService = Depends(),
     workspace_auth: WorkspaceAuth = Depends(),
 ):
-    """Lists tags, optionally filtered by workspace."""
+    """Searches tags with pagination."""
     is_admin = UserRoleEnum.ADMIN in current_user.roles
 
-    if workspace_id:
+    if search_dto.workspace_id:
         await workspace_auth.authorize(
-            workspace_id=workspace_id,
+            workspace_id=search_dto.workspace_id,
             user=current_user,
         )
-        return await service.list_tags(workspace_id, search)
+        return await service.list_tags(
+            search_dto.workspace_id,
+            search_dto.search,
+            search_dto.limit,
+            search_dto.offset,
+            search_dto.user_id,
+        )
 
     if not is_admin:
         raise HTTPException(
@@ -60,7 +72,11 @@ async def list_tags(
             detail="Non-admin users must specify a workspace_id.",
         )
 
-    return await service.list_tags()
+    return await service.list_tags(
+        limit=search_dto.limit,
+        offset=search_dto.offset,
+        user_id=search_dto.user_id,
+    )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -75,7 +91,7 @@ async def create_tag(
         workspace_id=dto.workspace_id,
         user=current_user,
     )
-    return await service.create_tag(dto)
+    return await service.create_tag(dto, current_user.id)
 
 
 @router.put("/{tag_id}")
@@ -93,12 +109,14 @@ async def update_tag(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tag not found",
         )
-        
+
     await workspace_auth.authorize(
         workspace_id=tag.workspace_id,
         user=current_user,
     )
-    return await service.update_tag(tag_id, dto)
+    return await service.update_tag(
+        tag_id, dto, current_user.id, UserRoleEnum.ADMIN in current_user.roles
+    )
 
 
 @router.delete("/{tag_id}")
@@ -124,7 +142,7 @@ async def delete_tag(
             user=current_user,
         )
 
-    return await service.delete_tag(tag_id)
+    return await service.delete_tag(tag_id, current_user.id, is_admin)
 
 
 @router.post("/bulk-assign")
@@ -139,4 +157,4 @@ async def bulk_assign_tags(
         workspace_id=dto.workspace_id,
         user=current_user,
     )
-    return await service.bulk_assign(dto)
+    return await service.bulk_assign(dto, current_user.id)

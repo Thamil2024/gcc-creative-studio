@@ -53,7 +53,9 @@ def fixture_override_dependencies(mock_tags_service, mock_workspace_auth):
 class TestListTags:
     """Tests for GET /api/tags/."""
 
-    def test_list_tags_with_workspace_success(self, api_client, mock_tags_service):
+    def test_list_tags_with_workspace_success(
+        self, api_client, mock_tags_service
+    ):
         mock_tags_service.list_tags.return_value = [
             TagModel(id=1, name="tag1", workspace_id=1)
         ]
@@ -70,7 +72,9 @@ class TestListTags:
         response = api_client.get("/api/tags/")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_list_tags_admin_no_workspace_success(self, admin_client, mock_tags_service):
+    def test_list_tags_admin_no_workspace_success(
+        self, admin_client, mock_tags_service
+    ):
         mock_tags_service.list_tags.return_value = [
             TagModel(id=1, name="tag1", workspace_id=1)
         ]
@@ -143,8 +147,12 @@ class TestUpdateTag:
 
     def test_update_tag_success(self, api_client, mock_tags_service):
         # Mock repo.get_by_id to return a tag
-        mock_tags_service.repo.get_by_id.return_value = TagModel(id=1, name="old_name", workspace_id=1)
-        mock_tags_service.update_tag.return_value = TagModel(id=1, name="new_name", workspace_id=1, color="#FF0000")
+        mock_tags_service.repo.get_by_id.return_value = TagModel(
+            id=1, name="old_name", workspace_id=1
+        )
+        mock_tags_service.update_tag.return_value = TagModel(
+            id=1, name="new_name", workspace_id=1, color="#FF0000"
+        )
 
         response = api_client.put(
             "/api/tags/1",

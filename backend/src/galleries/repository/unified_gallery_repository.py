@@ -67,7 +67,7 @@ class UnifiedGalleryRepository(
             query = query.where(self.model.status == search_dto.status.value)
 
         # Filter by user_id
-        if search_dto.user_email:
+        if user_id is not None:
             query = query.where(self.model.user_id == user_id)
 
         # Filter by metadata using JSONB operators
@@ -113,9 +113,10 @@ class UnifiedGalleryRepository(
 
         # 4.5 Tags Filter
         if hasattr(search_dto, "tags") and search_dto.tags:
-            query = query.where(
-                self.model.metadata_["tags"].contains(search_dto.tags)
-            )
+            for tag_name in search_dto.tags:
+                query = query.where(
+                    self.model.metadata_["tags"].contains([{"name": tag_name}])
+                )
 
         # 5. Full-Text Word Search
         if hasattr(search_dto, "query") and search_dto.query:

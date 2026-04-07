@@ -50,7 +50,9 @@ class TestListTags:
         mock_tags_repo.get_by_workspace.assert_called_once_with(1, None)
 
     @pytest.mark.anyio
-    async def test_list_tags_without_workspace(self, tags_service, mock_tags_repo):
+    async def test_list_tags_without_workspace(
+        self, tags_service, mock_tags_repo
+    ):
         mock_tags_repo.find_all.return_value = [
             TagModel(id=1, name="tag1", workspace_id=1)
         ]
@@ -80,7 +82,9 @@ class TestCreateTag:
         mock_tags_repo.create.assert_called_once_with(dto)
 
     @pytest.mark.anyio
-    async def test_create_tag_already_exists(self, tags_service, mock_tags_repo):
+    async def test_create_tag_already_exists(
+        self, tags_service, mock_tags_repo
+    ):
         mock_tags_repo.find_by_name.return_value = TagModel(
             id=1, name="existing", workspace_id=1
         )
@@ -112,7 +116,10 @@ class TestBulkAssign:
     @pytest.mark.anyio
     async def test_bulk_assign_media_item(self, tags_service, mock_tags_repo):
         dto = BulkAssignTagsDto(
-            item_ids=[1, 2], tag_ids=[10, 20], item_type="media_item", workspace_id=1
+            item_ids=[1, 2],
+            tag_ids=[10, 20],
+            item_type="media_item",
+            workspace_id=1,
         )
 
         result = await tags_service.bulk_assign(dto)

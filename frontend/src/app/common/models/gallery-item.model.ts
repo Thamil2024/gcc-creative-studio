@@ -15,6 +15,7 @@
  */
 
 import {PaginatedResponse} from './paginated-response.model';
+import {TagModel} from '../services/tags.service';
 
 export interface BaseGalleryItem {
   id: number;
@@ -23,6 +24,7 @@ export interface BaseGalleryItem {
   createdAt: string;
   status?: string;
   deletedAt?: string;
+  tags?: TagModel[];
 
   // Display fields (optional fallbacks for backward compatibility)
   mimeType?: string;

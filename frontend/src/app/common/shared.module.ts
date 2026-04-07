@@ -41,6 +41,7 @@ import {CopyToWorkspaceDialogComponent} from './components/copy-to-workspace-dia
 import {InviteUserModalComponent} from './components/invite-user-modal/invite-user-modal.component';
 import {WorkspaceSwitcherComponent} from './components/workspace-switcher/workspace-switcher.component';
 import {BrandGuidelineDialogComponent} from './components/brand-guideline-dialog/brand-guideline-dialog.component';
+import {TagsManagementDialogComponent} from './components/tags-management-dialog/tags-management-dialog.component';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MarkdownModule} from 'ngx-markdown';
 import {GalleryItemOverlayComponent} from './components/gallery-item-overlay/gallery-item-overlay.component';
@@ -71,6 +72,7 @@ const DECLARATIONS = [
   StudioSearchFilterComponent,
   StudioDateRangeFilterComponent,
   TruncatePipe,
+  TagsManagementDialogComponent,
 ];
 
 const MODULES = [

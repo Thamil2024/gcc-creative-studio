@@ -27,7 +27,9 @@ async def test_get_by_workspace():
     mock_db = AsyncMock()
     mock_result = MagicMock()
     now = datetime.now()
-    mock_tag = Tag(id=1, name="tag1", workspace_id=1, created_at=now, updated_at=now)
+    mock_tag = Tag(
+        id=1, name="tag1", workspace_id=1, created_at=now, updated_at=now
+    )
     mock_result.scalars().all.return_value = [mock_tag]
     mock_db.execute.return_value = mock_result
 
@@ -45,7 +47,9 @@ async def test_find_by_name_found():
     mock_db = AsyncMock()
     mock_result = MagicMock()
     now = datetime.now()
-    mock_tag = Tag(id=1, name="tag1", workspace_id=1, created_at=now, updated_at=now)
+    mock_tag = Tag(
+        id=1, name="tag1", workspace_id=1, created_at=now, updated_at=now
+    )
     mock_result.scalar_one_or_none.return_value = mock_tag
     mock_db.execute.return_value = mock_result
 
@@ -88,7 +92,9 @@ async def test_get_tags_for_media_item():
     mock_db = AsyncMock()
     mock_result = MagicMock()
     now = datetime.now()
-    mock_tag = Tag(id=1, name="tag1", workspace_id=1, created_at=now, updated_at=now)
+    mock_tag = Tag(
+        id=1, name="tag1", workspace_id=1, created_at=now, updated_at=now
+    )
     mock_result.scalars().all.return_value = [mock_tag]
     mock_db.execute.return_value = mock_result
 

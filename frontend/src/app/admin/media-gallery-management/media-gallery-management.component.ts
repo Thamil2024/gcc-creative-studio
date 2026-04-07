@@ -24,7 +24,7 @@ import {MatSnackBar} from '@angular/material/snack-bar';
 import {firstValueFrom} from 'rxjs';
 import {GalleryService} from '../../gallery/gallery.service';
 import {GalleryItem} from '../../common/models/gallery-item.model';
-import {TagsService} from '../../common/services/tags.service';
+import {TagsService, TagModel, PaginationResponseDto} from '../../common/services/tags.service';
 import {WorkspaceStateService} from '../../services/workspace/workspace-state.service';
 import {GallerySearchDto} from '../../common/models/search.model';
 import {
@@ -100,8 +100,8 @@ export class MediaGalleryManagementComponent implements OnInit {
     const workspaceId = this.workspaceStateService.getActiveWorkspaceId();
     if (workspaceId) {
       this.tagsService.getTags(workspaceId).subscribe({
-        next: tags => {
-          this.tagOptions = tags.map(tag => ({
+        next: (response: PaginationResponseDto<TagModel>) => {
+          this.tagOptions = response.data.map((tag: TagModel) => ({
             value: tag.name,
             label: tag.name,
           }));
