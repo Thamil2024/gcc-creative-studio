@@ -283,7 +283,7 @@ export const MODEL_CONFIGS: GenerationModelConfig[] = [
   },
   {
     value: 'veo-3.0-generate-001',
-    viewValue: 'Veo 3 Quality \n (Beta Audio)',
+    viewValue: 'Veo 3 Quality (deprecated) \n (Beta Audio)',
     type: 'VIDEO',
     icon: 'volume_up',
     capabilities: {
@@ -295,7 +295,7 @@ export const MODEL_CONFIGS: GenerationModelConfig[] = [
   },
   {
     value: 'veo-3.0-fast-generate-001',
-    viewValue: 'Veo 3 Fast \n (Beta Audio)',
+    viewValue: 'Veo 3 Fast (deprecated) \n (Beta Audio)',
     type: 'VIDEO',
     icon: 'volume_up',
     capabilities: {

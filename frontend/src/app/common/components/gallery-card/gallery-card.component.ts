@@ -81,7 +81,10 @@ export class GalleryCardComponent implements OnDestroy {
   }
 
   get displayPaddingBottom(): string {
-    const rawRatio = this.item.aspectRatio;
+    const rawRatio =
+      this.item.aspectRatio ||
+      (this.item as any).aspect ||
+      this.item.metadata?.aspectRatio;
     const gap = 16; // gap-4 is 1rem = 16px
 
     // Default handles for no ratio
@@ -207,38 +210,39 @@ export class GalleryCardComponent implements OnDestroy {
     event.preventDefault();
   }
 
+  getRoute(): any[] {
+    return this.item.itemType === 'source_asset'
+      ? ['/asset-detail', this.item.id]
+      : ['/gallery', this.item.id];
+  }
+
   onCardClick(event: MouseEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
+    if (this.isSelectionMode || this.anyItemSelected) {
+      event.preventDefault();
+      event.stopPropagation();
 
-    if (this.isSelectionMode) {
-      this.mediaItemSelected.emit({
-        mediaItem: this.item as unknown as MediaItem,
-        selectedIndex: this.currentImageIndex,
-      });
-      this.selectionToggled.emit({
-        item: this.item,
-        event,
-        selectedIndex: this.currentImageIndex,
-      });
-      return;
+      if (this.isSelectionMode) {
+        this.mediaItemSelected.emit({
+          mediaItem: this.item as unknown as MediaItem,
+          selectedIndex: this.currentImageIndex,
+        });
+        this.selectionToggled.emit({
+          item: this.item,
+          event,
+          selectedIndex: this.currentImageIndex,
+        });
+        return;
+      }
+
+      if (this.anyItemSelected) {
+        this.selectionToggled.emit({
+          item: this.item,
+          event,
+          selectedIndex: this.currentImageIndex,
+        });
+        return;
+      }
     }
-
-    if (this.anyItemSelected) {
-      this.selectionToggled.emit({
-        item: this.item,
-        event,
-        selectedIndex: this.currentImageIndex,
-      });
-      return;
-    }
-
-    const route =
-      this.item.itemType === 'source_asset'
-        ? ['/asset-detail', this.item.id]
-        : ['/gallery', this.item.id];
-
-    void this.router.navigate(route, {state: {mediaItem: this.item}});
   }
 
   get displayedTags(): TagModel[] {

@@ -39,12 +39,14 @@
     <!-- Left Column: The Image/Video -->
     <div class="lg:col-span-2">
       <app-media-lightbox [mediaItem]="mediaItem" [initialIndex]="initialSlideIndex"
-
+        [showDeleteButton]="true"
         (editClicked)="generateWithThisImage($event)"
         (generateVideoClicked)="generateVideoWithImage($event)"
         (sendToVtoClicked)="sendToVto($event)"
         (extendWithAiClicked)="handleExtendWithAi($event)"
         (concatenateClicked)="handleConcatenate($event)"
+        (deleteClicked)="deleteCurrentMedia()"
+        (tagsChanged)="onTagsChanged($event)"
         style="max-height: 80vh"
       ></app-media-lightbox>
     </div>

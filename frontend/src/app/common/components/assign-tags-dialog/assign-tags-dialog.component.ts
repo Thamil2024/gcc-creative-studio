@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {Component, Inject, OnInit} from '@angular/core';
+import {Component, Inject, OnInit, HostListener} from '@angular/core';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {TagsService, TagModel} from '../../services/tags.service';
 import {WorkspaceStateService} from '../../../services/workspace/workspace-state.service';
@@ -115,6 +115,12 @@ export class AssignTagsDialogComponent implements OnInit {
       }
       this.newTagName = '';
     }
+  }
+
+  @HostListener('window:keydown.control.enter', ['$event'])
+  handleCtrlEnter(event: KeyboardEvent) {
+    event.preventDefault();
+    this.onSave();
   }
 
   onSave(): void {

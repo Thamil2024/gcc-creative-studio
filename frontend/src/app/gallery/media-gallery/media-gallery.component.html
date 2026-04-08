@@ -136,72 +136,46 @@
         <!-- Secondary Row: Advanced Filters (Collapsible) -->
         <div 
           *ngIf="showAdvancedFilters" [@fadeSlideInOut]
-          class="flex flex-wrap justify-start items-center gap-4 p-4 bg-neutral-800/50 rounded-lg animate-fade-in"
+          class="flex flex-col gap-1 p-4 bg-neutral-800/50 rounded-lg animate-fade-in"
         >
-          <!-- Media Type Filter -->
-          <div class="flex flex-col w-48" *ngIf="!filterByType">
-            <studio-dropdown
-              class="w-full"
-              size="small"
-              [options]="mediaTypeOptions"
-              [(value)]="mediaTypeFilter"
-              (valueChange)="onMediaTypeChange($event)"
-              placeholder="Media Type"
-              menuTitle="Media Type"
-            ></studio-dropdown>
-          </div>
+          <!-- Dropdowns Row -->
+          <div class="flex flex-wrap justify-start items-center gap-4">
+            <!-- Media Type Filter -->
+            <div class="flex flex-col w-48" *ngIf="!filterByType">
+              <studio-dropdown class="w-full" size="small" [options]="mediaTypeOptions" [(value)]="mediaTypeFilter"
+                (valueChange)="onMediaTypeChange($event)" placeholder="Media Type" menuTitle="Media Type"></studio-dropdown>
+              </div>
 
-          <!-- Generation Model Filter -->
-          <div class="flex flex-col w-48">
-            <studio-dropdown
-               class="w-full"
-               size="small"
-              [options]="modelOptions"
-              [(value)]="generationModelFilter"
-              (valueChange)="searchTerm()"
-              placeholder="Generation Model"
-              menuTitle="Generation Model"
-            ></studio-dropdown>
-          </div>
+            <!-- Generation Model Filter -->
+            <div class="flex flex-col w-48">
+              <studio-dropdown class="w-full" size="small" [options]="modelOptions" [(value)]="generationModelFilter"
+                (valueChange)="searchTerm()" placeholder="Generation Model" menuTitle="Generation Model"></studio-dropdown>
+              </div>
 
-          <!-- Asset Type Filter -->
-          <div class="flex flex-col w-48">
-            <studio-dropdown
-               class="w-full"
-               size="small"
-              [options]="assetTypeOptions"
-              [(value)]="assetTypeFilter"
-              (valueChange)="searchTerm()"
-              placeholder="Asset Type"
-              menuTitle="Asset Type"
-            ></studio-dropdown>
-          </div>
+            <!-- Asset Type Filter -->
+            <div class="flex flex-col w-48">
+              <studio-dropdown class="w-full" size="small" [options]="assetTypeOptions" [(value)]="assetTypeFilter"
+                (valueChange)="searchTerm()" placeholder="Asset Type" menuTitle="Asset Type"></studio-dropdown>
+              </div>
 
-          <!-- Tags Filter -->
-          <div class="flex items-center gap-2 w-56">
-            <studio-dropdown
-               class="flex-1"
-               size="small"
-              [options]="displayedTagOptions"
-              [(value)]="tagsFilter"
-              [multiple]="true"
-              [searchable]="true"
-              [deletable]="true"
-              [hasMore]="hasMoreTags()"
-              [showCheckbox]="true"
-              [checkboxChecked]="onlyMyTags"
-              [checkboxLabel]="'My tags'"
-              (checkboxChange)="toggleOnlyMyTags($event)"
-              (valueChange)="onTagChange($event)"
-              (searchChange)="onTagSearch($event)"
-              (optionDeleted)="onTagDelete($event)"
-              (loadMore)="loadMoreTags()"
-              placeholder="Tags"
-              menuTitle="Tags"
-            ></studio-dropdown>
-            <button mat-icon-button (click)="openTagsManagement()" title="Manage Tags" *ngIf="isAdmin" class="settings-btn">
-              <mat-icon>settings</mat-icon>
-            </button>
+            <!-- Tags Filter -->
+            <div class="flex items-center gap-2 w-56">
+              <studio-dropdown class="flex-1" size="small" [options]="displayedTagOptions" [(value)]="tagsFilter" [multiple]="true"
+                [searchable]="true" [deletable]="true" [hasMore]="hasMoreTags()" [showCheckbox]="true" [checkboxChecked]="onlyMyTags"
+                [checkboxLabel]="'My tags'" (checkboxChange)="toggleOnlyMyTags($event)" (valueChange)="onTagChange($event)"
+                (searchChange)="onTagSearch($event)" (optionDeleted)="onTagDelete($event)" (loadMore)="loadMoreTags()"
+                placeholder="Tags" menuTitle="Tags"></studio-dropdown>
+              <button mat-icon-button (click)="openTagsManagement()" title="Manage Tags" *ngIf="isAdmin" class="settings-btn">
+                <mat-icon>settings</mat-icon>
+              </button>
+            </div>
+            </div>
+            
+            <!-- Checkbox Row -->
+            <div class="flex items-center text-white text-sm">
+              <mat-checkbox [checked]="onlyMyMedia" (change)="toggleOnlyMyMedia($event.checked)">
+                Select only my media
+              </mat-checkbox>
           </div>
         </div>
 

@@ -147,6 +147,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
   tagsPageSize = 10;
   tagsCurrentPage = 1;
   onlyMyTags = true;
+  onlyMyMedia = false;
   userId: number | undefined;
 
   get displayedTagOptions(): DropdownOption[] {
@@ -326,6 +327,11 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     this.loadTags();
   }
 
+  toggleOnlyMyMedia(checked: boolean): void {
+    this.onlyMyMedia = checked;
+    this.searchTerm();
+  }
+
   onTagSearch(search: string): void {
     this.tagsCurrentPage = 1;
     this.loadTags(search);
@@ -361,6 +367,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     dialogRef.afterClosed().subscribe(() => {
+      this.tagsCurrentPage = 1; // Reset pagination
       this.loadTags(); // Reload tags after management!
     });
   }
@@ -616,7 +623,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     dialogRef.afterClosed().subscribe((selectedTags: string[]) => {
-      if (selectedTags && selectedTags.length > 0) {
+      if (selectedTags) {
         this.performBulkTag(selectedTags);
       }
     });
@@ -665,6 +672,8 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
           this.selectedItems.clear();
           this.lastSelectedIndex = null;
           this.searchTerm();
+          this.tagsCurrentPage = 1; // Reset tags pagination
+          this.loadTags(); // Reload tags to show new ones
         },
         error: err => console.error('Error assigning tags:', err),
       });
@@ -825,6 +834,12 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (this.filterByUserEmail) {
       filters['userEmail'] = this.filterByUserEmail;
+    }
+    if (this.onlyMyMedia) {
+      const user = this.userService.getUserDetails();
+      if (user?.email) {
+        filters['userEmail'] = user.email;
+      }
     }
     if (this.endDateFilter) {
       filters['endDate'] = this.endDateFilter.toISOString();

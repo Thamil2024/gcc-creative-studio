@@ -239,7 +239,7 @@ export class GalleryService implements OnDestroy {
     return data.map(item => this.mapUnifiedItem(item));
   }
 
-  private mapUnifiedItem(item: any): GalleryItem {
+  public mapUnifiedItem(item: any): GalleryItem {
     const metadata = item.metadata || {};
     const galleryItem: GalleryItem = {
       id: item.id,
