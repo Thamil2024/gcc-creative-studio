@@ -59,7 +59,6 @@ def upgrade() -> None:
                 'lighting', mi.lighting,
                 'num_media', mi.num_media,
                 'generation_time', mi.generation_time,
-                'user_email', mi.user_email,
                 'is_video', (mi.mime_type like 'video%'),
                 'is_audio', (mi.mime_type like 'audio%')
             ) AS metadata
@@ -83,17 +82,16 @@ def upgrade() -> None:
                 'mime_type', sa.mime_type,
                 'aspect_ratio', sa.aspect_ratio,
                 'asset_type', sa.asset_type,
-                'user_email', u.email,
                 'is_video', (sa.mime_type like 'video%'),
                 'is_audio', (sa.mime_type like 'audio%')
             ) AS metadata
         FROM source_assets sa
-        LEFT JOIN users u ON sa.user_id = u.id
     )
     SELECT 
         ub.*,
         w.name AS workspace_name,
-        u.picture AS user_picture
+        u.picture AS user_picture,
+        u.email AS user_email
     FROM unified_base ub
     LEFT JOIN workspaces w ON ub.workspace_id = w.id
     LEFT JOIN users u ON ub.user_id = u.id;

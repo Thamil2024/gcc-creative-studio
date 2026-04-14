@@ -145,4 +145,4 @@ async def test_get_active_users_monthly():
 
     service = AdminService(db)
     result = await service.get_active_users_monthly()
-    assert len(result) == 6
+    assert len(result) == 7

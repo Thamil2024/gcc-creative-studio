@@ -288,11 +288,11 @@ class AdminService:
         result_dict = {row.month: row.count for row in results}
 
         if start_date and end_date:
-            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(day=1)
             end_dt = datetime.strptime(end_date, "%Y-%m-%d")
         else:
             end_dt = datetime.today()
-            start_dt = end_dt - timedelta(days=180)
+            start_dt = (end_dt - timedelta(days=180)).replace(day=1)
 
         months = []
         curr_dt = start_dt

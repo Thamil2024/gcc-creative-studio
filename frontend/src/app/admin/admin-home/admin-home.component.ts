@@ -935,7 +935,11 @@ export class AdminHomeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (isPlatformBrowser(this.platformId)) {
-      d3.select('body').selectAll('.chart-tooltip').remove();
+      d3.select('body')
+        .selectAll(
+          '.chart-tooltip, .workspace-chart-tooltip, .media-chart-tooltip',
+        )
+        .remove();
     }
   }
 }
