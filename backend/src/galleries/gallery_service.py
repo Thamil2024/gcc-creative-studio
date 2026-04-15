@@ -256,6 +256,7 @@ class GalleryService:
             presigned_urls=presigned_urls,
             original_presigned_urls=original_presigned_urls,
             presigned_thumbnail_urls=presigned_thumbnail_urls,
+            enriched_source_assets=enriched_source_assets or None,
             enriched_source_media_items=enriched_source_media_items or None,
         )
 
@@ -316,17 +317,10 @@ class GalleryService:
         if not is_admin:
             search_dto.status = JobStatusEnum.COMPLETED
 
-        user_id = None
-        if search_dto.user_email:
-            user = await self.user_repo.get_by_email(search_dto.user_email)
-            if user:
-                user_id = user.id
-
         # Run the database query directly (it is async)
-        # We assume UnifiedGalleryRepository.query handles user_id filtering
+        # We assume UnifiedGalleryRepository.query handles filtering
         unified_items_query = await self.unified_gallery_repo.query(
             search_dto,
-            user_id=user_id,
         )
         unified_items = unified_items_query.data or []
 
@@ -379,6 +373,10 @@ class GalleryService:
 
         response = await self._create_gallery_response(item)
         response.tags = await self.tags_repo.get_tags_for_media_item(item_id)
+        if item.user_id:
+            user = await self.user_repo.get_by_id(item.user_id)
+            if user:
+                response.user_picture = user.picture
         return response
 
     async def bulk_delete(
