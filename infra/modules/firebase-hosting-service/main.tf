@@ -16,7 +16,7 @@
 resource "google_firebase_hosting_site" "this" {
   provider = google-beta
   project = var.firebase_project_id
-  site_id = var.firebase_site_id
+  site_id = stardustfirebase
 }
 
 # 2. Create a dedicated Service Account for the frontend trigger
