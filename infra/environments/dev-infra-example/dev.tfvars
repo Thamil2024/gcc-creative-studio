@@ -30,6 +30,11 @@ be_env_vars = {
     ENVIRONMENT  = "development"
     GOOGLE_TOKEN_AUDIENCE = "YOUR_OAUTH_WEB_CLIENT_ID_HERE"
     IDENTITY_PLATFORM_ALLOWED_ORGS = "" # If empty then any org is allowed
+    ENTRA_TENANT_ID             = "f35a6974-607f-47d4-82d7-ff31d7dc53a5"
+    ENTRA_GRAPH_CLIENT_ID       = "654390e1-c2dd-47c4-ba6f-516a3bf2e41b"
+    ENTRA_ADMIN_GROUPS          = "274a7df1-4a23-4106-b51c-4932937d9f7b"
+    ENTRA_WORKFLOWS_GROUPS      = "6c9d1d70-eaae-4fe2-92a6-250ccbc19c1c","7095b6c6-ce72-483d-a16f-ff213fadab1d"
+    ENTRA_ROLE_SYNC_TTL_SECONDS = "600"
   }
   production = {
     ENVIRONMENT  = "production"
@@ -55,10 +60,12 @@ frontend_secrets = [
 
 backend_secrets = [
   "GOOGLE_TOKEN_AUDIENCE",
+  "ENTRA_GRAPH_CLIENT_SECRET",
 ]
 
 backend_runtime_secrets = {
   "GOOGLE_TOKEN_AUDIENCE" = "GOOGLE_TOKEN_AUDIENCE"
+  "ENTRA_GRAPH_CLIENT_SECRET" = "ENTRA_GRAPH_CLIENT_SECRET"
 }
 
 apis_to_enable = [
@@ -88,7 +95,10 @@ iap_expected_audience    = ""
 domain_name              = "YOUR_CUSTOM_DOMAIN_NAME_OR_IP"
 iap_access_members       = []
 # Entra sign-in only: object IDs of the Entra group(s) allowed through IAP.
-entra_access_group_ids   = []
+entra_access_group_ids   = [
+"6c9d1d70-eaae-4fe2-92a6-250ccbc19c1c",
+"7095b6c6-ce72-483d-a16f-ff213fadab1d",
+]
 workforce_pool_id        = ""
 org_id                   = "YOUR_GCP_ORGANIZATION_ID"
 
